@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -128,7 +127,7 @@ func (s *SegmentedStorage) GetNextMessage(topicName string, seq uint64) (*messag
 	}
 
 	if seq < topicStorage.ActiveSegment.Header.SeqMin {
-		// TODO
+		// TODO: need to load message from older segment
 		return nil, fmt.Errorf("seq < seqMin (%d < %d) (not implemented yet)", seq, topicStorage.ActiveSegment.Header.SeqMin)
 	}
 	return topicStorage.ActiveSegment.GetNextMessage(seq)
@@ -152,7 +151,18 @@ func (s *SegmentedStorage) Shutdown() error {
 	var firstError error
 	for topic, topicStorage := range s.Topics {
 		segmentPath := path.Join(s.config.TopicsDir, topic, segmentFilename(topicStorage.ActiveSegment.Header))
-		err := topicStorage.ActiveSegment.SaveToFile(segmentPath)
+		activeSegment := topicStorage.ActiveSegment
+
+		// do nothing if min/max seqs are not changed
+		if activeSegment.SegmentFilePath != "" {
+			filename := path.Base(activeSegment.SegmentFilePath)
+			fileMinSeq, fileMaxSeq := minMaxSeqsFromSegmentFilename(filename)
+			if fileMinSeq == activeSegment.Header.SeqMin && fileMaxSeq == activeSegment.Header.SeqMax {
+				return nil
+			}
+		}
+
+		err := activeSegment.SaveToFile(segmentPath)
 		if err != nil && firstError == nil {
 			firstError = err
 		}
@@ -183,15 +193,8 @@ func (s *SegmentedStorage) OpenTopic(topicName string) error {
 
 	n := len(segments)
 	activeSegmentFilename := segmentFilename(segments[n-1].Header)
-	activeSegmentFilepath := path.Join(topicPath, activeSegmentFilename)
-	fd, err := os.Open(activeSegmentFilepath)
-	if err != nil {
-		return err
-	}
-	defer fd.Close()
-	bufReader := bufio.NewReader(fd)
-	activeSegment := NewActiveSegment(activeSegmentFilepath)
-	err = activeSegment.Deserialize(bufReader)
+
+	activeSegment, err := ActiveSegmentFromFile(path.Join(topicPath, activeSegmentFilename))
 	if err != nil {
 		return err
 	}
@@ -236,25 +239,4 @@ func listSegments(topicPath string) ([]*Segment, error) {
 	// TODO: may be check on SeqMin & SeqMax non-overlapping ?
 
 	return segments, nil
-}
-
-func segmentFilename(header *SegmentHeader) string {
-	return fmt.Sprintf("%d_%d.segment", header.SeqMin, header.SeqMax)
-}
-
-func isSegmentFile(filePath string) bool {
-	return segmentFilePathPattern.MatchString(filePath)
-}
-
-func isTopicDir(dirPath string) bool {
-	files, err := ioutil.ReadDir(dirPath)
-	if err != nil {
-		return false
-	}
-	for _, file := range files {
-		if isSegmentFile(file.Name()) {
-			return true
-		}
-	}
-	return false
 }

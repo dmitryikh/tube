@@ -18,7 +18,7 @@ func TestConsumersRegistrySerialization(t *testing.T) {
 		t.Fatalf("Serialization error: %s", err)
 	}
 
-	if !reflect.DeepEqual(registry, newRegistry) {
+	if !reflect.DeepEqual(registry.Consumers, registry.Consumers) {
 		t.Fatalf("Different objects")
 	}
 }

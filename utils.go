@@ -14,9 +14,9 @@ var (
 
 func MinUint64(v1, v2 uint64) uint64 {
 	if v2 > v1 {
-		return v2
+		return v1
 	}
-	return v1
+	return v2
 }
 
 func MaxUint64(v1, v2 uint64) uint64 {
