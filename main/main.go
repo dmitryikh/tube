@@ -1,21 +1,23 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net"
+	"os"
+	"os/signal"
 
 	"github.com/dmitryikh/tube/api"
 	"github.com/dmitryikh/tube/broker"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	fmt.Printf("Hello!")
+	log.Info("Welcome to tube!")
 	config, err := broker.ReadConfig()
 	if err != nil {
 		panic(err)
 	}
+	config.LogConfig()
 	topicManager, err := broker.NewTopicManager(config)
 	if err != nil {
 		panic(err)
@@ -28,9 +30,23 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 	api.RegisterBrokerServiceServer(grpcServer, service)
+
+	interruptChannel := make(chan os.Signal, 1)
+	signal.Notify(interruptChannel, os.Interrupt)
+	go func() {
+		<-interruptChannel
+		grpcServer.GracefulStop()
+	}()
+
+	log.Info("Listening on 0.0.0.0:8010")
 	err = grpcServer.Serve(lis)
-	// log.Fatal(err)
+	if err != nil {
+		log.Errorf("Grpc Server error: %s", err)
+	}
 
 	err = topicManager.Shutdown()
-	log.Fatal(err)
+	if err != nil {
+		log.Errorf("TopicsManager error: %s", err)
+	}
+	log.Info("Bye!")
 }

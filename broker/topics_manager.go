@@ -11,6 +11,7 @@ import (
 	"github.com/dmitryikh/tube"
 	"github.com/dmitryikh/tube/message"
 	"github.com/dmitryikh/tube/storage"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -52,6 +53,7 @@ func NewTopicManager(config *Config) (*TopicsManager, error) {
 	manager := &TopicsManager{}
 	manager.config = NewTopicsManagerConfig(config)
 
+	log.Info("Creating TopicsManager..")
 	// TODO: create DataDir if not exists
 	err := os.MkdirAll(config.DataDir, 0777)
 	if err != nil {
@@ -72,6 +74,7 @@ func NewTopicManager(config *Config) (*TopicsManager, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Infof("Creating TopicsManager: create metadata file \"%s\"", metadataFilePath)
 	}
 	file, err := os.Open(metadataFilePath)
 	if err != nil {
@@ -83,6 +86,7 @@ func NewTopicManager(config *Config) (*TopicsManager, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("Creating TopicsManager: read metadata from \"%s\"", metadataFilePath)
 
 	topicsDirPath := path.Join(config.DataDir, topicsDirName)
 	storageConfig := NewSegmentedStorageConfig(config, topicsDirPath)
@@ -91,6 +95,7 @@ func NewTopicManager(config *Config) (*TopicsManager, error) {
 		return nil, err
 	}
 	manager.Storage = topicsStorage
+	log.Info("Creating TopicsManager.. Done")
 	return manager, nil
 }
 
@@ -144,6 +149,7 @@ func (m *TopicsManager) AddTopic(name string) error {
 	}
 
 	m.Topics[name] = NewTopic()
+	log.WithField("topic", name).Info("AddTopic")
 	return nil
 }
 
@@ -159,6 +165,7 @@ func (m *TopicsManager) RemoveTopic(name string) error {
 		return err
 	}
 	delete(m.Topics, name)
+	log.WithField("topic", name).Info("RemoveTopic")
 	return nil
 }
 
@@ -188,6 +195,10 @@ func (m *TopicsManager) AddMessage(topicName string, msg *message.Message) error
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	log.WithFields(log.Fields{
+		"topic": topicName,
+		"seq":   msg.Seq,
+	}).Trace("AddMessage")
 	return m.Storage.AddMessage(topicName, msg)
 }
 
@@ -195,6 +206,10 @@ func (m *TopicsManager) GetNextMessage(topicName string, seq uint64) (*message.M
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	log.WithFields(log.Fields{
+		"topic": topicName,
+		"seq":   seq,
+	}).Trace("GetNextMessage")
 	return m.Storage.GetNextMessage(topicName, seq)
 }
 
@@ -202,6 +217,9 @@ func (m *TopicsManager) GetLastMessage(topicName string) (*message.Message, erro
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	log.WithFields(log.Fields{
+		"topic": topicName,
+	}).Trace("GetLastMessage")
 	return m.Storage.GetLastMessage(topicName)
 }
 
@@ -209,6 +227,7 @@ func (m *TopicsManager) Shutdown() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	log.Info("Shutting down TopicsManager..")
 	err := m.Storage.Shutdown()
 	if err != nil {
 		return err
@@ -228,6 +247,7 @@ func (m *TopicsManager) Shutdown() error {
 	if err != nil {
 		return err
 	}
+	log.Info("Shutting down TopicsManager.. Done")
 
 	return nil
 }

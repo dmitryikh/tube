@@ -1,6 +1,7 @@
 package broker
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -42,4 +43,15 @@ func ReadConfig() (*Config, error) {
 	config.StorageFlushingToFilePeriodSec = c.GetInt("storage-flushind-pediod-sec")
 	config.StorageHousekeepingPeriodSec = c.GetInt("storage-housekeeping-pediod-sec")
 	return config, nil
+}
+
+func (c *Config) LogConfig() {
+	log.Info("Config:")
+	log.Info("    data-dir: ", c.DataDir)
+	log.Info("    segment-max-size-bytes: ", c.SegmentMaxSizeBytes)
+	log.Info("    segment-max-size-messages: ", c.SegmentMaxSizeMessages)
+	log.Info("    storage-message-retention-sec: ", c.MessageRetentionSec)
+	log.Info("    segment-unload-messages-lag-sec: ", c.UnloadMessagesLagSec)
+	log.Info("    storage-flushind-pediod-sec: ", c.StorageFlushingToFilePeriodSec)
+	log.Info("    storage-housekeeping-pediod-sec: ", c.StorageHousekeepingPeriodSec)
 }
