@@ -136,7 +136,7 @@ func TestCreateTopic(t *testing.T) {
 
 	{
 		resp, err := client.ProduceBatch(ctx, &api.MessagesBatchRequest{
-			Messages: generateMessages(0, "demo", 10),
+			Messages: generateMessages(1, "demo", 10),
 		})
 		checkError(t, err, resp, "ProduceBatch")
 		log.Printf("ProduceBatch Response: %+v", resp)

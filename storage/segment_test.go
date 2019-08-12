@@ -22,21 +22,23 @@ func TestMain(m *testing.M) {
 }
 
 func TestEmptySegmentSerialization(t *testing.T) {
-	segment := NewActiveSegment("")
+	segment := NewSegment()
 	buffer := new(bytes.Buffer)
 	err := segment.Serialize(buffer)
 	if err != nil {
 		t.Fatalf("Serialization error: %s", err)
 	}
 
-	newSegment := NewActiveSegment("")
-	err = newSegment.Deserialize(buffer)
+	newSegment := NewSegment()
+	err = newSegment.Deserialize(buffer, true)
 	if err != nil {
 		t.Fatalf("Deserialization error: %s", err)
 	}
+	// make times equal for comparison
+	newSegment.LastMessageRead = segment.LastMessageRead
 
 	if !reflect.DeepEqual(segment, newSegment) {
-		t.Fatalf("Different objects")
+		t.Fatalf("Different objects (%v vs %v)", segment, newSegment)
 	}
 }
 
@@ -59,7 +61,7 @@ func TestActiveSegmentAppend(t *testing.T) {
 	}
 
 	{
-		segment := NewActiveSegment("")
+		segment := NewSegment()
 		_ = segment.AddMessage(messages[0])
 		_ = segment.AddMessage(messages[1])
 		_ = segment.AddMessage(messages[2])
@@ -79,7 +81,7 @@ func TestActiveSegmentAppend(t *testing.T) {
 		}
 	}
 
-	segment, err := ActiveSegmentFromFile(sFilename)
+	segment, err := SegmentFromFile(sFilename, true)
 	if err != nil {
 		t.Fatal(err)
 	}

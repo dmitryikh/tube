@@ -5,7 +5,6 @@ import (
 
 	"github.com/dmitryikh/tube"
 	"github.com/dmitryikh/tube/api"
-	"github.com/dmitryikh/tube/message"
 	"google.golang.org/grpc"
 )
 
@@ -48,9 +47,9 @@ func NewProducer(config ProducerConfig, topics []string) (*Producer, error) {
 	return p, nil
 }
 
-func (p *Producer) Produce(topic string, messages []*message.Message) error {
-
-}
+// func (p *Producer) Produce(topic string, messages []*message.Message) error {
+//
+// }
 
 func (p *Producer) Connect() error {
 	err := p.Disconnect()

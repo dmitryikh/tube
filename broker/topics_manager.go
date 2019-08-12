@@ -20,9 +20,13 @@ const (
 
 func NewSegmentedStorageConfig(config *Config, topicsDir string) *storage.SegmentedStorageConfig {
 	return &storage.SegmentedStorageConfig{
-		TopicsDir:              topicsDir,
-		SegmentMaxSizeBytes:    config.SegmentMaxSizeBytes,
-		SegmentMaxSizeMessages: config.SegmentMaxSizeMessages,
+		TopicsDir:               topicsDir,
+		SegmentMaxSizeBytes:     config.SegmentMaxSizeBytes,
+		SegmentMaxSizeMessages:  config.SegmentMaxSizeMessages,
+		MessageRetentionSec:     config.MessageRetentionSec,
+		UnloadMessagesLagSec:    config.UnloadMessagesLagSec,
+		FlushingToFilePeriodSec: config.StorageFlushingToFilePeriodSec,
+		HousekeepingPeriodSec:   config.StorageHousekeepingPeriodSec,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
+	"unsafe"
 
 	"github.com/dmitryikh/tube"
 )
@@ -31,6 +32,13 @@ func NewMessage() *Message {
 		Payload:   make([]byte, 0),
 	}
 	return message
+}
+
+func (m *Message) Size() int {
+	// TODO: include Meta to size..
+	return int(unsafe.Sizeof(m.Crc)+
+		unsafe.Sizeof(m.Seq)+
+		unsafe.Sizeof(m.Timestamp)) + len(m.Payload)
 }
 
 func (m *Message) Serialize(writer io.Writer) error {

@@ -69,3 +69,11 @@ func IsDir(dirPath string) bool {
 	}
 	return info.IsDir()
 }
+
+func SecondsToNanoSeconds(seconds int64) uint64 {
+	return uint64(seconds) * 1000000000
+}
+
+func NanoSecondsToSeconds(nanoSeconds uint64) int64 {
+	return int64(nanoSeconds / 1000000000)
+}

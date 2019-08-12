@@ -1,11 +1,7 @@
 package tube
 
-import (
-	"math"
-)
-
 const (
-	UnsetSeq = math.MaxUint64
+	UnsetSeq = 0
 )
 
 // Key - topic name

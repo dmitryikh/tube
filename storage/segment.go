@@ -2,166 +2,138 @@ package storage
 
 import (
 	"bufio"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"sort"
+	"sync"
+	"time"
 
 	"github.com/dmitryikh/tube"
 	"github.com/dmitryikh/tube/message"
 )
 
-type SegmentHeader struct {
-	MessagesCount uint64
-	SeqMin        uint64
-	SeqMax        uint64
-	TimestampMin  uint64
-	TimestampMax  uint64
-}
-
-func NewSegmentHeader() *SegmentHeader {
-	return &SegmentHeader{
-		MessagesCount: 0,
-		SeqMin:        tube.UnsetSeq,
-		SeqMax:        tube.UnsetSeq,
-		TimestampMin:  0,
-		TimestampMax:  0,
-	}
-}
-
-func (h *SegmentHeader) SkippedMessagesCount() uint64 {
-	return (h.SeqMax - h.SeqMin) - h.MessagesCount
-}
-
-func (h *SegmentHeader) Serialize(writer io.Writer) error {
-	// first 4 bytes - reserved for version
-	version := uint32(0)
-	err := tube.WriteUint32(writer, version)
-	if err != nil {
-		return err
-	}
-	encoder := gob.NewEncoder(writer)
-	err = encoder.Encode(h.MessagesCount)
-	if err != nil {
-		return err
-	}
-	err = encoder.Encode(h.SeqMin)
-	if err != nil {
-		return err
-	}
-	err = encoder.Encode(h.SeqMax)
-	if err != nil {
-		return err
-	}
-	err = encoder.Encode(h.TimestampMin)
-	if err != nil {
-		return err
-	}
-	err = encoder.Encode(h.TimestampMax)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (h *SegmentHeader) Deserialize(reader io.Reader) error {
-	// first 4 bytes - reserved for version
-	version, err := tube.ReadUint32(reader)
-	if err != nil {
-		return err
-	}
-	if version == 0 {
-		decoder := gob.NewDecoder(reader)
-		err = decoder.Decode(&h.MessagesCount)
-		if err != nil {
-			return err
-		}
-		err = decoder.Decode(&h.SeqMin)
-		if err != nil {
-			return err
-		}
-		err = decoder.Decode(&h.SeqMax)
-		if err != nil {
-			return err
-		}
-		err = decoder.Decode(&h.TimestampMin)
-		if err != nil {
-			return err
-		}
-		err = decoder.Decode(&h.TimestampMax)
-		if err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("unsupported version %d", version)
-	}
-	return nil
-}
-
-type ActiveSegment struct {
+type Segment struct {
 	Header          *SegmentHeader
 	Messages        []*message.Message
 	SegmentFilePath string
+	LastMessageRead time.Time
+	PartiallyLoaded bool
+	lock            sync.RWMutex
+	messagesSize    int
 }
 
-func NewActiveSegment(segmentFilePath string) *ActiveSegment {
-	activeSegment := &ActiveSegment{
+func NewSegment() *Segment {
+	activeSegment := &Segment{
 		Header:          NewSegmentHeader(),
 		Messages:        make([]*message.Message, 0),
-		SegmentFilePath: segmentFilePath,
+		SegmentFilePath: "",
+		LastMessageRead: time.Now(),
+		PartiallyLoaded: false,
+		messagesSize:    0,
 	}
 	return activeSegment
 }
 
-func ActiveSegmentFromFile(segmentFilepath string) (*ActiveSegment, error) {
+func SegmentFromFile(segmentFilepath string, loadMessages bool) (*Segment, error) {
 	file, err := os.Open(segmentFilepath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 	bufReader := bufio.NewReader(file)
-	activeSegment := NewActiveSegment(segmentFilepath)
-	err = activeSegment.Deserialize(bufReader)
+	segment := NewSegment()
+	err = segment.Deserialize(bufReader, loadMessages)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: check consistency between segment filename and loaded activeSegment
-	return activeSegment, nil
+	segment.SegmentFilePath = segmentFilepath
+	// TODO: check consistency between segment filename and loaded data
+	return segment, nil
 }
 
-func (s *ActiveSegment) AddMessage(message *message.Message) error {
-	if s.Header.SeqMax == tube.UnsetSeq {
-		// first message in segment
-		s.Header.SeqMin = message.Seq
-	} else if message.Seq <= s.Header.SeqMax {
-		return fmt.Errorf("message with seq = %d already exists", message.Seq)
+func (s *Segment) LoadMessages() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	file, err := os.Open(s.SegmentFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	bufReader := bufio.NewReader(file)
+	err = s.Deserialize(bufReader, true /*loadMessages*/)
+	if err != nil {
+		return err
+	}
+	s.LastMessageRead = time.Now()
+	// TODO: check consistency between segment filename and loaded data
+	return nil
+}
+
+func (s *Segment) UnloadMessages() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	file, err := os.Open(s.SegmentFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	bufReader := bufio.NewReader(file)
+	err = s.Deserialize(bufReader, false /*loadMessages*/)
+	if err != nil {
+		return err
+	}
+	// TODO: check consisbency between segment filename and loaded data
+	return nil
+}
+
+func (s *Segment) AddMessage(message *message.Message) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if s.PartiallyLoaded {
+		return fmt.Errorf("Can't add messages to partially loaded segment")
+	}
+	if message.Seq <= s.Header.SeqMax {
+		return fmt.Errorf("seq less that current SeqMax (%d < %d)", message.Seq, s.Header.SeqMax)
+	}
+	if s.PartiallyLoaded {
+		return fmt.Errorf("Can't add messages to partially loaded segment")
 	}
 	s.Messages = append(s.Messages, message)
 	s.Header.MessagesCount++
 	s.Header.SeqMax = message.Seq
+	if s.Header.SeqMin == 0 {
+		// first message
+		s.Header.SeqMin = message.Seq
+	}
 	s.Header.TimestampMin = tube.MinUint64(s.Header.TimestampMin, message.Timestamp)
 	s.Header.TimestampMax = tube.MaxUint64(s.Header.TimestampMax, message.Timestamp)
+	s.messagesSize += message.Size()
 	return nil
 }
 
-func (s *ActiveSegment) getIndexOfNextSeqNum(seq uint64) (int, error) {
-	if seq < s.Header.SeqMin || seq >= s.Header.SeqMax {
-		return 0, fmt.Errorf("no message with seq = %d in segment [%d; %d]", seq, s.Header.SeqMin, s.Header.SeqMax)
+func (s *Segment) getIndexOfNextSeqNum(seq uint64) (int, error) {
+	if seq >= s.Header.SeqMax {
+		return 0, fmt.Errorf("no message with seq > %d in segment [%d; %d]", seq, s.Header.SeqMin, s.Header.SeqMax)
 	}
 	idx := sort.Search(len(s.Messages), func(i int) bool {
 		return s.Messages[i].Seq > seq
 	})
 
 	if idx == len(s.Messages) {
-		return 0, fmt.Errorf("logicError: no next message for seq = %d (segment [%d; %d])", seq, s.Header.SeqMin, s.Header.SeqMax)
+		return 0, fmt.Errorf("logicError: no next message for seq > %d (segment [%d; %d])", seq, s.Header.SeqMin, s.Header.SeqMax)
 	}
 
 	return idx, nil
 }
 
-func (s *ActiveSegment) GetNextMessage(seq uint64) (*message.Message, error) {
+func (s *Segment) GetNextMessage(seq uint64) (*message.Message, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if s.PartiallyLoaded {
+		return nil, fmt.Errorf("Can't read messages from partially loaded segment")
+	}
+	s.LastMessageRead = time.Now()
 	idx, err := s.getIndexOfNextSeqNum(seq)
 	if err != nil {
 		return nil, err
@@ -169,7 +141,22 @@ func (s *ActiveSegment) GetNextMessage(seq uint64) (*message.Message, error) {
 	return s.Messages[idx], nil
 }
 
-func (s *ActiveSegment) Serialize(writer io.Writer) error {
+func (s *Segment) GetLastMessage() (*message.Message, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if s.PartiallyLoaded {
+		return nil, fmt.Errorf("Can't read messages from partially loaded segment")
+	}
+	if s.IsEmpty() {
+		return nil, fmt.Errorf("segment is empty")
+	}
+	return s.Messages[len(s.Messages)-1], nil
+}
+
+func (s *Segment) Serialize(writer io.Writer) error {
+	if s.PartiallyLoaded {
+		return fmt.Errorf("Can't serialize partially loaded segment")
+	}
 	err := s.Header.Serialize(writer)
 	if err != nil {
 		return err
@@ -183,25 +170,39 @@ func (s *ActiveSegment) Serialize(writer io.Writer) error {
 	return nil
 }
 
-func (s *ActiveSegment) Deserialize(reader io.Reader) error {
+func (s *Segment) Deserialize(reader io.Reader, loadMessages bool) error {
 	err := s.Header.Deserialize(reader)
 	if err != nil {
 		return err
 	}
-	s.Messages = make([]*message.Message, 0, s.Header.MessagesCount)
+	if loadMessages {
+		s.PartiallyLoaded = false
+		s.Messages = make([]*message.Message, 0, s.Header.MessagesCount)
 
-	for i := uint64(0); i < s.Header.MessagesCount; i++ {
-		message := message.NewMessage()
-		err = message.Deserialize(reader, true)
-		if err != nil {
-			return err
+		s.messagesSize = 0
+		for i := uint64(0); i < s.Header.MessagesCount; i++ {
+			message := message.NewMessage()
+			err = message.Deserialize(reader, true)
+			if err != nil {
+				return err
+			}
+			s.Messages = append(s.Messages, message)
+			s.messagesSize += message.Size()
 		}
-		s.Messages = append(s.Messages, message)
+	} else {
+		s.PartiallyLoaded = true
+		s.Messages = make([]*message.Message, 0)
+		s.messagesSize = 0
 	}
 	return nil
 }
 
-func (s *ActiveSegment) SaveToFile(fileNamePath string) error {
+func (s *Segment) SaveToFile(fileNamePath string) error {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if s.PartiallyLoaded {
+		return fmt.Errorf("Can't save partially loaded segment")
+	}
 	tmpFileNamePath := fileNamePath + ".tmp"
 	file, err := os.Create(tmpFileNamePath)
 	if err != nil {
@@ -239,19 +240,22 @@ func (s *ActiveSegment) SaveToFile(fileNamePath string) error {
 	return nil
 }
 
-func (s *ActiveSegment) AppendToFile(filenamePath string) error {
+func (s *Segment) AppendToFile(filenamePath string) error {
 	// consider messages are immutable (no one can change already written messages)
 	// 1. Append only new messages to the end of the file
 	// 2. Update segment header
-	segmentFilename := path.Base(s.SegmentFilePath)
-	if !isSegmentFile(segmentFilename) {
-		return fmt.Errorf("file \"%s\" doesn't look like segment file", segmentFilename)
-	}
 
-	if !tube.IsRegularFile(s.SegmentFilePath) {
-		return fmt.Errorf("file \"%s\" can't be found", segmentFilename)
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if s.PartiallyLoaded {
+		return fmt.Errorf("Can't save partially loaded segment")
 	}
-	seqMin, seqMax := minMaxSeqsFromSegmentFilename(segmentFilename)
+	segmentOrig, err := SegmentFromFile(s.SegmentFilePath, false)
+	if err != nil {
+		return err
+	}
+	seqMin := segmentOrig.Header.SeqMin
+	seqMax := segmentOrig.Header.SeqMax
 
 	if seqMin != s.Header.SeqMin {
 		return fmt.Errorf("seqMin should be the same (from file: %d, from active segment: %d)", seqMin, s.Header.SeqMin)
@@ -271,12 +275,11 @@ func (s *ActiveSegment) AppendToFile(filenamePath string) error {
 		return err
 	}
 
-	// file, err := os.OpenFile(s.SegmentFilePath, os.O_APPEND|os.O_WRONLY, 0666)
 	file, err := os.OpenFile(s.SegmentFilePath, os.O_RDWR, 0666)
 	if err != nil {
 		return err
 	}
-	_, err = file.Seek(0, io.SeekEnd)
+	lastOffsetBytes, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
 		file.Close()
 		return err
@@ -287,23 +290,26 @@ func (s *ActiveSegment) AppendToFile(filenamePath string) error {
 		msg := s.Messages[idx]
 		err = msg.Serialize(file)
 		if err != nil {
-			break
+			// delete new messages to restore the file as it was before appending
+			_ = file.Truncate(lastOffsetBytes)
+			_ = file.Close()
+			return err
 		}
 		lastWrittenSeq = msg.Seq
 	}
 
 	_, err2 := file.Seek(0, io.SeekStart)
 	if err2 != nil {
-		file.Close()
-		// TODO: got corrupted file at this point
+		_ = file.Truncate(lastOffsetBytes)
+		_ = file.Close()
 		return err2
 	}
 	segmentHeader := *s.Header
 	segmentHeader.SeqMax = lastWrittenSeq
 	err2 = segmentHeader.Serialize(file)
 	if err2 != nil {
-		file.Close()
-		// TODO: got corrupted file at this point
+		_ = file.Truncate(lastOffsetBytes)
+		_ = file.Close()
 		return err2
 	}
 	err2 = file.Close()
@@ -321,28 +327,25 @@ func (s *ActiveSegment) AppendToFile(filenamePath string) error {
 	return err
 }
 
-type Segment struct {
-	Header *SegmentHeader
+func (s *Segment) IsEmpty() bool {
+	return s.Header.MessagesCount == 0
 }
 
-func NewSegment() *Segment {
-	return &Segment{
-		Header: NewSegmentHeader(),
-	}
+func (s *Segment) IsPartiallyLoaded() bool {
+	return s.PartiallyLoaded
 }
 
-func (s *Segment) Deserialize(reader io.Reader) error {
-	err := s.Header.Deserialize(reader)
-	if err != nil {
-		return err
+func (s *Segment) MessagesSize() int {
+	return s.messagesSize
+}
+
+func (s *Segment) DeleteSegmentFile() error {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if s.SegmentFilePath != "" {
+		return os.Remove(s.SegmentFilePath)
 	}
-	// TODO: do we need to read messages here?
-	// for i := uint64(0); i < s.Header.MessagesCount; i++ {
-	// 	message := message.NewMessage()
-	// 	err = message.Deserialize(reader, false)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
+	s.SegmentFilePath = ""
 	return nil
 }
