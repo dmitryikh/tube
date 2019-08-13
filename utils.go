@@ -12,6 +12,20 @@ var (
 	crc32Table = crc32.MakeTable(0xEDB88320)
 )
 
+type TopicExistsError struct {
+	TopicName string
+}
+
+func NewTopicExistsError(topicName string) TopicExistsError {
+	return TopicExistsError{
+		TopicName: topicName,
+	}
+}
+
+func (e TopicExistsError) Error() string {
+	return fmt.Sprintf("topic \"%s\" already exists", e.TopicName)
+}
+
 func MinUint64(v1, v2 uint64) uint64 {
 	if v2 > v1 {
 		return v1
@@ -46,7 +60,7 @@ func WriteUint32(writer io.Writer, value uint32) error {
 
 func ReadUint32(reader io.Reader) (uint32, error) {
 	var buffer [4]byte
-	n, err := reader.Read(buffer[:])
+	n, err := io.ReadFull(reader, buffer[:])
 	if n != len(buffer) {
 		return 0, fmt.Errorf("too small array (%d bytes): %s", n, err)
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+	// log.SetLevel(log.TraceLevel)
 	log.Info("Welcome to tube!")
 	config, err := broker.ReadConfig()
 	if err != nil {
@@ -24,7 +26,7 @@ func main() {
 	}
 	service := broker.NewBrokerService(topicManager)
 
-	lis, err := net.Listen("tcp", ":8010")
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -38,7 +40,7 @@ func main() {
 		grpcServer.GracefulStop()
 	}()
 
-	log.Info("Listening on 0.0.0.0:8010")
+	log.Infof("Listening on :%d", config.Port)
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		log.Errorf("Grpc Server error: %s", err)

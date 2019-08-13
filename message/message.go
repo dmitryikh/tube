@@ -104,7 +104,7 @@ func (m *Message) Deserialize(reader io.Reader, checkCRC bool) error {
 			return fmt.Errorf("can't read large message (%d bytes). Limit %d", length, maxMessageSize)
 		}
 		buffer := make([]byte, length)
-		n, err := reader.Read(buffer)
+		n, err := io.ReadFull(reader, buffer)
 		if uint32(n) != length {
 			return fmt.Errorf("can't read buffer of %d bytes (got %d bytes)", length, n)
 		}

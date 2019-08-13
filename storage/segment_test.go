@@ -6,6 +6,7 @@ import (
 	"path"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/dmitryikh/tube/message"
 )
@@ -53,7 +54,7 @@ func createMessage(seq uint64, timestamp uint64) *message.Message {
 func TestActiveSegmentAppend(t *testing.T) {
 	var sFilename string
 	messages := []*message.Message{
-		createMessage(1, 0),
+		createMessage(1, 100),
 		createMessage(2, 500),
 		createMessage(3, 100500),
 		createMessage(5, 100501),
@@ -87,12 +88,53 @@ func TestActiveSegmentAppend(t *testing.T) {
 		MessagesCount: 5,
 		SeqMin:        1,
 		SeqMax:        6,
-		TimestampMin:  0,
+		TimestampMin:  100,
 		TimestampMax:  1000000,
 	}
 
 	if !reflect.DeepEqual(header, segment.Header) {
 		t.Fatalf("headers are not equal: expected: %v, got: %v", header, segment.Header)
+	}
+
+	if !reflect.DeepEqual(messages, segment.Messages) {
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, segment.Messages)
+	}
+}
+
+func TestSegmentSaveOpen(t *testing.T) {
+	var sFilename string
+	const nMessages = 1000
+	messages := make([]*message.Message, 0, nMessages)
+	for i := 0; i < nMessages; i++ {
+		messages = append(messages, createMessage(uint64(i+1), uint64(time.Now().UnixNano())))
+	}
+
+	{
+		segment := NewSegment()
+		_ = segment.AddMessages(messages)
+
+		sFilename = path.Join(dataDir, segmentFilename(segment.Header))
+		err := segment.SaveToFile(sFilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	segment, err := SegmentFromFile(sFilename, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if segment.Header.TimestampMin == 0 || segment.Header.TimestampMax == 0 {
+		t.Errorf("TimestampMin or TimestampMax shouldn't be zero")
+	}
+
+	if segment.Header.MessagesCount != nMessages {
+		t.Errorf("wrong MessageCount")
+	}
+
+	if segment.Header.SeqMin != 1 || segment.Header.SeqMax != nMessages {
+		t.Errorf("wrong SeqMin or SeqMax")
 	}
 
 	if !reflect.DeepEqual(messages, segment.Messages) {

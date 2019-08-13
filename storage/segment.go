@@ -108,7 +108,11 @@ func (s *Segment) AddMessages(messages []*message.Message) error {
 	}
 
 	for _, message := range messages {
-		s.Header.TimestampMin = tube.MinUint64(s.Header.TimestampMin, message.Timestamp)
+		if s.Header.TimestampMin == 0 {
+			s.Header.TimestampMin = message.Timestamp
+		} else {
+			s.Header.TimestampMin = tube.MinUint64(s.Header.TimestampMin, message.Timestamp)
+		}
 		s.Header.TimestampMax = tube.MaxUint64(s.Header.TimestampMax, message.Timestamp)
 		s.messagesSize += message.Size()
 	}
@@ -314,7 +318,11 @@ func (s *Segment) AppendToFile(filenamePath string) error {
 	seqMin := segmentOrig.Header.SeqMin
 	seqMax := segmentOrig.Header.SeqMax
 
-	if seqMin != s.Header.SeqMin {
+	if s.Header.MessagesCount < segmentOrig.Header.MessagesCount {
+		return fmt.Errorf("active segment hase less messages than in file (from file: %d, from active segment: %d)", segmentOrig.Header.MessagesCount, s.Header.MessagesCount)
+	}
+
+	if s.Header.MessagesCount > 0 && seqMin != s.Header.SeqMin {
 		return fmt.Errorf("seqMin should be the same (from file: %d, from active segment: %d)", seqMin, s.Header.SeqMin)
 	}
 

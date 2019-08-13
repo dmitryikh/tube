@@ -152,6 +152,7 @@ func (s *SegmentedStorage) AddMessages(topicName string, messages []*message.Mes
 	activeSegment := topicStorage.ActiveSegment()
 	err = activeSegment.AddMessages(messages)
 	if err != nil {
+		s.lock.RUnlock()
 		return err
 	}
 	s.lock.RUnlock()
@@ -162,6 +163,9 @@ func (s *SegmentedStorage) AddMessages(topicName string, messages []*message.Mes
 		defer s.lock.Unlock()
 
 		segmentPath := path.Join(s.config.TopicsDir, topicName, segmentFilename(activeSegment.Header))
+		log.WithFields(log.Fields{
+			"topic": topicName,
+		}).Infof("Spin new segment after %s", segmentFilename(activeSegment.Header))
 		err := activeSegment.AppendToFile(segmentPath)
 		if err != nil {
 			return err
@@ -364,7 +368,7 @@ func housekeepingInternal(s *SegmentedStorage) {
 	// 3. Unload messages from unused long time segments
 	now := time.Now().Unix()
 	s.lock.RLock()
-	log.Info("Do housekeeping..")
+	log.Trace("Do housekeeping..")
 	segmentsToDelete := make(map[string][]int)
 	for topicName, topic := range s.Topics {
 		if s.config.FlushingToFilePeriodSec != 0 &&
@@ -375,14 +379,14 @@ func housekeepingInternal(s *SegmentedStorage) {
 			log.WithFields(log.Fields{
 				"topic":   topicName,
 				"segment": newSegmentFilename,
-			}).Info("Do housekeeping.. Flushing to disk")
+			}).Info("Flushing to disk")
 			segmentPath := path.Join(s.config.TopicsDir, topicName, newSegmentFilename)
 			err := activeSegment.AppendToFile(segmentPath)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"topic":   topicName,
 					"segment": newSegmentFilename,
-				}).Errorf("Do housekeeping.. Flushing to disk failed: %s", err)
+				}).Errorf("Flushing to disk failed: %s", err)
 			}
 			topic.lastTimeFlushed = time.Now()
 		}
@@ -403,19 +407,23 @@ func housekeepingInternal(s *SegmentedStorage) {
 					log.WithFields(log.Fields{
 						"topic":   topicName,
 						"segment": segmentFilename(segment.Header),
-					}).Trace("Do housekeeping.. Marked to delete")
+					}).Trace("Marked to delete")
 					// do not perform futher housekeep as soon the segment will be deleted
 					continue
 				}
 			}
 
 			if !segment.IsPartiallyLoaded() && (segment.LastMessageRead.Unix()+int64(s.config.UnloadMessagesLagSec) < now) {
+				log.WithFields(log.Fields{
+					"topic":   topicName,
+					"segment": segmentFilename(segment.Header),
+				}).Info("Unloading segment")
 				err := segment.UnloadMessages()
 				if err != nil {
 					log.WithFields(log.Fields{
 						"topic":   topicName,
 						"segment": segmentFilename(segment.Header),
-					}).Errorf("Do housekeeping.. Failed to unload messages: %s", err)
+					}).Errorf("Failed to unload messages: %s", err)
 				}
 
 			}
@@ -431,7 +439,7 @@ func housekeepingInternal(s *SegmentedStorage) {
 			if !isFound {
 				// topic itself was deleted ..
 				log.WithField("topic", topicName).
-					Info("Do housekeeping.. Topic was deleted while housekeeping")
+					Info("Topic was deleted while housekeeping")
 				continue
 			}
 
@@ -445,13 +453,13 @@ func housekeepingInternal(s *SegmentedStorage) {
 					log.WithFields(log.Fields{
 						"topic":   topicName,
 						"segment": segmentFilename(segment.Header),
-					}).Info("Do housekeeping.. Delete segment")
+					}).Info("Delete segment")
 					err := segment.DeleteSegmentFile()
 					if err != nil {
 						log.WithFields(log.Fields{
 							"topic":   topicName,
 							"segment": segmentFilename(segment.Header),
-						}).Errorf("Do housekeeping.. Failed to delete segment: %s", err)
+						}).Errorf("Failed to delete segment: %s", err)
 					}
 				} else {
 					newSegments = append(newSegments, segment)
@@ -460,5 +468,5 @@ func housekeepingInternal(s *SegmentedStorage) {
 			topic.Segments = newSegments
 		}
 	}
-	log.Info("Do housekeeping.. Done")
+	log.Trace("Do housekeeping.. Done")
 }

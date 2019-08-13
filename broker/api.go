@@ -87,10 +87,7 @@ func (s *BrokerService) CreateTopic(ctx context.Context, request *api.CreateTopi
 	err := s.topicsManager.AddTopic(request.Topic)
 	if err != nil {
 		// TODO: code
-		response.Error = &api.Error{
-			Code:    1,
-			Message: fmt.Sprintf("%s", err),
-		}
+		response.Error = api.ProtoErrorFromError(err)
 		return response, nil
 	}
 	return response, nil

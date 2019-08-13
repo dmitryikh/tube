@@ -5,21 +5,22 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/dmitryikh/tube"
 	"github.com/dmitryikh/tube/api"
 	"github.com/dmitryikh/tube/message"
 	"google.golang.org/grpc"
 )
 
-type ProducerStatus int
-
-const (
-	ProducerOnline  ProducerStatus = 0
-	ProducerOffline ProducerStatus = 1
-)
+// type ProducerStatus int
+//
+// const (
+// 	ProducerOnline  ProducerStatus = 0
+// 	ProducerOffline ProducerStatus = 1
+// )
 
 type Producer struct {
-	config         ProducerConfig
-	Status         ProducerStatus
+	config ProducerConfig
+	// Status         ProducerStatus
 	producedSeqMap map[string]uint64
 	consumedSeqMap map[string]uint64
 	storedSeqMap   map[string]uint64
@@ -28,15 +29,14 @@ type Producer struct {
 }
 
 type ProducerConfig struct {
-	URI      string
-	DataDir  string
-	MaxBatch int
+	URI     string
+	DataDir string
 }
 
 func NewProducer(config ProducerConfig, topics []string) (*Producer, error) {
 	p := &Producer{
-		config:         config,
-		Status:         ProducerOffline,
+		config: config,
+		// Status:         ProducerOffline,
 		producedSeqMap: make(map[string]uint64),
 		consumedSeqMap: make(map[string]uint64),
 		storedSeqMap:   make(map[string]uint64),
@@ -51,8 +51,19 @@ func NewProducer(config ProducerConfig, topics []string) (*Producer, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = p.GetMeta()
+	for _, topic := range topics {
+		err := p.CreateTopic(topic)
+		if err != nil {
+			if _, isTopicExistsError := err.(tube.TopicExistsError); isTopicExistsError {
+				continue
+			}
+			p.Disconnect()
+			return nil, err
+		}
+	}
+	err = p.RecieveMeta()
 	if err != nil {
+		p.Disconnect()
 		return nil, err
 	}
 	// set produced seq as consumed seq
@@ -60,6 +71,21 @@ func NewProducer(config ProducerConfig, topics []string) (*Producer, error) {
 		p.producedSeqMap[topicName] = seq
 	}
 	return p, nil
+}
+
+func (p *Producer) CreateTopic(topic string) error {
+	ctx := context.Background()
+	request := &api.CreateTopicsRequest{
+		Topic: topic,
+	}
+	response, err := p.api.CreateTopic(ctx, request)
+	if err != nil {
+		return err
+	}
+	if response.Error != nil {
+		return api.ErrorFromProtoError(response.Error)
+	}
+	return nil
 }
 
 func (p *Producer) SendMessages(topic string, messages []*message.Message) error {
@@ -110,7 +136,7 @@ func (p *Producer) GetLastMessage(topic string) (*message.Message, error) {
 	return api.MessageFromProtoMessage(response.Message), nil
 }
 
-func (p *Producer) GetMeta() error {
+func (p *Producer) RecieveMeta() error {
 	ctx := context.Background()
 	topics := make([]string, 0, len(p.producedSeqMap))
 	for topicName, _ := range p.producedSeqMap {
@@ -132,6 +158,27 @@ func (p *Producer) GetMeta() error {
 	return nil
 }
 
+func (p *Producer) SendMeta(producedSeqs map[string]uint64) error {
+	ctx := context.Background()
+	producedSeqMap := make(map[string]uint64)
+	for topicName, seq := range producedSeqs {
+		producedSeqMap[topicName] = seq
+	}
+	p.producedSeqMap = producedSeqMap
+	request := &api.SendMetaRequest{
+		ProducedSeqs: producedSeqMap,
+	}
+
+	response, err := p.api.SendMeta(ctx, request)
+	if err != nil {
+		return err
+	}
+	if err := checkResponseError(response); err != nil {
+		return fmt.Errorf("GetMeta failed: %s", err)
+	}
+	return nil
+}
+
 func (p *Producer) Connect() error {
 	err := p.Disconnect()
 	if err != nil {
@@ -142,6 +189,8 @@ func (p *Producer) Connect() error {
 		return fmt.Errorf("failed connet to \"%s\": %s", p.config.URI, err)
 	}
 	p.connection = connection
+	p.api = api.NewBrokerServiceClient(p.connection)
+
 	return nil
 }
 
@@ -151,6 +200,7 @@ func (p *Producer) Disconnect() error {
 	}
 	connection := p.connection
 	p.connection = nil
+	p.api = nil
 	return connection.Close()
 }
 

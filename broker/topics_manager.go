@@ -144,7 +144,7 @@ func (m *TopicsManager) AddTopic(name string) error {
 	defer m.mutex.Unlock()
 
 	if _, isFound := m.Topics[name]; isFound {
-		return fmt.Errorf("topic '%s' is already exist", name)
+		return tube.NewTopicExistsError(name)
 	}
 	err := m.Storage.AddTopic(name)
 	if err != nil {

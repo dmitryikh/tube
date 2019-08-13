@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	DataDir                        string
+	Port                           int
 	SegmentMaxSizeBytes            int
 	SegmentMaxSizeMessages         int
 	MessageRetentionSec            int
@@ -18,6 +19,7 @@ type Config struct {
 
 func ReadConfig() (*Config, error) {
 	pflag.String("data-dir", "./data", "directory where to store all broker data")
+	pflag.String("port", "8010", "port to listen API commands")
 	pflag.Int("segment-max-size-bytes", 10*1024*1024, "maximum segment size in bytes")
 	pflag.Int("segment-max-size-messages", 100000, "maximum messages in segment")
 	pflag.Int("storage-message-retention-sec", 60*24, "message retention in seconds (based on message timestamp filed)")
@@ -35,6 +37,7 @@ func ReadConfig() (*Config, error) {
 	config := &Config{}
 
 	config.DataDir = c.GetString("data-dir")
+	config.Port = c.GetInt("port")
 	config.SegmentMaxSizeBytes = c.GetInt("segment-max-size-bytes")
 	config.SegmentMaxSizeMessages = c.GetInt("segment-max-size-messages")
 
@@ -48,6 +51,7 @@ func ReadConfig() (*Config, error) {
 func (c *Config) LogConfig() {
 	log.Info("Config:")
 	log.Info("    data-dir: ", c.DataDir)
+	log.Info("    port: ", c.Port)
 	log.Info("    segment-max-size-bytes: ", c.SegmentMaxSizeBytes)
 	log.Info("    segment-max-size-messages: ", c.SegmentMaxSizeMessages)
 	log.Info("    storage-message-retention-sec: ", c.MessageRetentionSec)
