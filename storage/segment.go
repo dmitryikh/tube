@@ -87,28 +87,31 @@ func (s *Segment) UnloadMessages() error {
 	return nil
 }
 
-func (s *Segment) AddMessage(message *message.Message) error {
+func (s *Segment) AddMessages(messages []*message.Message) error {
+	if len(messages) == 0 {
+		return nil
+	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.PartiallyLoaded {
 		return fmt.Errorf("Can't add messages to partially loaded segment")
 	}
-	if message.Seq <= s.Header.SeqMax {
-		return fmt.Errorf("seq less that current SeqMax (%d < %d)", message.Seq, s.Header.SeqMax)
+	if messages[0].Seq <= s.Header.SeqMax {
+		return fmt.Errorf("seq less that current SeqMax (%d < %d)", messages[0].Seq, s.Header.SeqMax)
 	}
-	if s.PartiallyLoaded {
-		return fmt.Errorf("Can't add messages to partially loaded segment")
-	}
-	s.Messages = append(s.Messages, message)
-	s.Header.MessagesCount++
-	s.Header.SeqMax = message.Seq
+	s.Messages = append(s.Messages, messages...)
+	s.Header.MessagesCount += uint64(len(messages))
+	s.Header.SeqMax = messages[len(messages)-1].Seq
 	if s.Header.SeqMin == 0 {
 		// first message
-		s.Header.SeqMin = message.Seq
+		s.Header.SeqMin = messages[0].Seq
 	}
-	s.Header.TimestampMin = tube.MinUint64(s.Header.TimestampMin, message.Timestamp)
-	s.Header.TimestampMax = tube.MaxUint64(s.Header.TimestampMax, message.Timestamp)
-	s.messagesSize += message.Size()
+
+	for _, message := range messages {
+		s.Header.TimestampMin = tube.MinUint64(s.Header.TimestampMin, message.Timestamp)
+		s.Header.TimestampMax = tube.MaxUint64(s.Header.TimestampMax, message.Timestamp)
+		s.messagesSize += message.Size()
+	}
 	return nil
 }
 
@@ -127,19 +130,67 @@ func (s *Segment) getIndexOfNextSeqNum(seq uint64) (int, error) {
 	return idx, nil
 }
 
-func (s *Segment) GetNextMessage(seq uint64) (*message.Message, error) {
+func (s *Segment) GetIndexOfNextSeqNum(seq uint64) (int, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if s.PartiallyLoaded {
+		return 0, fmt.Errorf("Can't read messages from partially loaded segment")
+	}
+	return s.getIndexOfNextSeqNum(seq)
+}
+
+// func (s *Segment) GetNextMessage(seq uint64) (*message.Message, error) {
+// 	s.lock.RLock()
+// 	defer s.lock.RUnlock()
+// 	if s.PartiallyLoaded {
+// 		return nil, fmt.Errorf("Can't read messages from partially loaded segment")
+// 	}
+// 	s.LastMessageRead = time.Now()
+// 	idx, err := s.getIndexOfNextSeqNum(seq)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return s.Messages[idx], nil
+// }
+
+func (s *Segment) GetMessageByIdx(idx int) (*message.Message, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	if s.PartiallyLoaded {
 		return nil, fmt.Errorf("Can't read messages from partially loaded segment")
 	}
 	s.LastMessageRead = time.Now()
-	idx, err := s.getIndexOfNextSeqNum(seq)
-	if err != nil {
-		return nil, err
+	if idx >= len(s.Messages) {
+		return nil, fmt.Errorf("Out of bounds (%d >= %d)", idx, len(s.Messages))
 	}
 	return s.Messages[idx], nil
 }
+
+// func (s *Segment) getMessageByIdx(idx int) (*message.Message, error) {
+// 	s.lock.RLock()
+// 	// defer s.lock.RUnlock()
+// 	if s.PartiallyLoaded {
+// 		s.lock.RUnlock()
+// 		s.lock.Lock()
+// 		defer s.lock.Unlock()
+// 		err := s.LoadMessages()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		if idx >= len(s.Messages) {
+// 			return nil, fmt.Errorf("Out of bounds (%d >= %d)", idx, len(s.Messages))
+// 		}
+// 		s.LastMessageRead = time.Now()
+// 		return s.Messages[idx], nil
+// 	} else {
+// 		defer s.lock.Unlock()
+// 		if idx >= len(s.Messages) {
+// 			return nil, fmt.Errorf("Out of bounds (%d >= %d)", idx, len(s.Messages))
+// 		}
+// 		s.LastMessageRead = time.Now()
+// 		return s.Messages[idx], nil
+// 	}
+// }
 
 func (s *Segment) GetLastMessage() (*message.Message, error) {
 	s.lock.RLock()
@@ -250,6 +301,12 @@ func (s *Segment) AppendToFile(filenamePath string) error {
 	if s.PartiallyLoaded {
 		return fmt.Errorf("Can't save partially loaded segment")
 	}
+
+	if s.SegmentFilePath == "" {
+		// Create new file if no old one
+		return s.SaveToFile(filenamePath)
+	}
+
 	segmentOrig, err := SegmentFromFile(s.SegmentFilePath, false)
 	if err != nil {
 		return err

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dmitryikh/tube/api"
+	"github.com/dmitryikh/tube/message"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -28,9 +29,11 @@ func setup() {
 	lis = bufconn.Listen(bufSize)
 
 	config := &Config{
-		DataDir:                dataDir,
-		SegmentMaxSizeBytes:    1024 * 1024 * 10,
-		SegmentMaxSizeMessages: 10000,
+		DataDir:                        dataDir,
+		SegmentMaxSizeBytes:            1024 * 1024 * 10,
+		SegmentMaxSizeMessages:         10000,
+		StorageFlushingToFilePeriodSec: 2,
+		StorageHousekeepingPeriodSec:   1,
 	}
 	topicManager, err := NewTopicManager(config)
 	if err != nil {
@@ -122,20 +125,8 @@ func TestCreateTopic(t *testing.T) {
 		log.Printf("CreateTopic Response: %+v", resp)
 	}
 
-	// resp2, err := client.GetLastMessage(ctx, &api.GetLastMessageRequest{
-	// 	Topic: "demo",
-	// })
-
-	// if err != nil {
-	// 	t.Fatalf("GetLastMessage transport failed: %v", err)
-	// }
-	// if resp2.Error == nil {
-	// 	t.Fatalf("GetLastMessage should contain error!")
-	// }
-	// log.Printf("GetLastMessage Response: %+v", resp2)
-
 	{
-		resp, err := client.ProduceBatch(ctx, &api.MessagesBatchRequest{
+		resp, err := client.SendMessages(ctx, &api.SendMessagesRequest{
 			Messages: generateMessages(1, "demo", 10),
 		})
 		checkError(t, err, resp, "ProduceBatch")
@@ -149,4 +140,208 @@ func TestCreateTopic(t *testing.T) {
 		checkError(t, err, resp, "GetLastMessage")
 		log.Printf("GetLastMessage Response: %+v", resp)
 	}
+}
+
+func TestSendAndRecieveMessages(t *testing.T) {
+	ctx := context.Background()
+	topicName := "TestSendAndRecieveMessages"
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	client := api.NewBrokerServiceClient(conn)
+
+	messagesWithRoute := generateMessages(1, topicName, 20)
+	messagesTrue := make([]*message.Message, len(messagesWithRoute))
+	for i, msgWRoute := range messagesWithRoute {
+		messagesTrue[i] = api.MessageFromProtoMessage(msgWRoute.Message)
+	}
+
+	{
+		resp, err := client.CreateTopic(ctx, &api.CreateTopicsRequest{
+			Topic: topicName,
+		})
+
+		checkError(t, err, resp, "CreateTopic failed")
+		log.Printf("CreateTopic Response: %+v", resp)
+	}
+
+	{
+		resp, err := client.SendMessages(ctx, &api.SendMessagesRequest{
+			Messages: messagesWithRoute[0:10],
+		})
+		checkError(t, err, resp, "ProduceBatch")
+		log.Printf("ProduceBatch Response: %+v", resp)
+	}
+
+	// check that GetLastMessage return current last message
+	{
+		resp, err := client.GetLastMessage(ctx, &api.GetLastMessageRequest{
+			Topic: topicName,
+		})
+		checkError(t, err, resp, "GetLastMessage")
+		log.Printf("GetLastMessage Response: %+v", resp)
+		if !reflect.DeepEqual(messagesTrue[9], api.MessageFromProtoMessage(resp.Message)) {
+			t.Fatalf("Different objects")
+		}
+	}
+
+	{
+		resp, err := client.SendMessages(ctx, &api.SendMessagesRequest{
+			Messages: messagesWithRoute[10:20],
+		})
+		checkError(t, err, resp, "ProduceBatch")
+		log.Printf("ProduceBatch Response: %+v", resp)
+	}
+
+	// check that GetLastMessage return current last message
+	{
+		resp, err := client.GetLastMessage(ctx, &api.GetLastMessageRequest{
+			Topic: topicName,
+		})
+		checkError(t, err, resp, "GetLastMessage")
+		log.Printf("GetLastMessage Response: %+v", resp)
+		if !reflect.DeepEqual(messagesTrue[19], api.MessageFromProtoMessage(resp.Message)) {
+			t.Fatalf("Different objects")
+		}
+	}
+
+	{
+		resp, err := client.RecieveMessages(ctx, &api.RecieveMessagesRequest{
+			Topic:    topicName,
+			Seq:      0,
+			MaxBatch: 5,
+		})
+		checkError(t, err, resp, "GetLastMessage")
+		log.Printf("RecieveMessages Response: %+v", resp)
+
+		messages := make([]*message.Message, len(resp.Messages))
+		for i, msg := range resp.Messages {
+			messages[i] = api.MessageFromProtoMessage(msg)
+		}
+
+		if !reflect.DeepEqual(messages, messagesTrue[0:5]) {
+			t.Fatalf("Different objects")
+		}
+	}
+
+	// Read all messages (large MaxBatch)
+	{
+		resp, err := client.RecieveMessages(ctx, &api.RecieveMessagesRequest{
+			Topic:    topicName,
+			Seq:      0,
+			MaxBatch: 100,
+		})
+		checkError(t, err, resp, "GetLastMessage")
+		log.Printf("RecieveMessages Response: %+v", resp)
+
+		messages := make([]*message.Message, len(resp.Messages))
+		for i, msg := range resp.Messages {
+			messages[i] = api.MessageFromProtoMessage(msg)
+		}
+
+		if !reflect.DeepEqual(messages, messagesTrue) {
+			t.Fatalf("Different objects")
+		}
+	}
+
+	// Read last two messages
+	{
+		resp, err := client.RecieveMessages(ctx, &api.RecieveMessagesRequest{
+			Topic:    topicName,
+			Seq:      18,
+			MaxBatch: 100,
+		})
+		checkError(t, err, resp, "GetLastMessage")
+		log.Printf("RecieveMessages Response: %+v", resp)
+
+		messages := make([]*message.Message, len(resp.Messages))
+		for i, msg := range resp.Messages {
+			messages[i] = api.MessageFromProtoMessage(msg)
+		}
+
+		if !reflect.DeepEqual(messages, messagesTrue[18:20]) {
+			t.Fatalf("Different objects")
+		}
+	}
+
+	// Read no messages
+	{
+		resp, err := client.RecieveMessages(ctx, &api.RecieveMessagesRequest{
+			Topic:    topicName,
+			Seq:      20,
+			MaxBatch: 100,
+		})
+		checkError(t, err, resp, "GetLastMessage")
+		log.Printf("RecieveMessages Response: %+v", resp)
+
+		messages := make([]*message.Message, len(resp.Messages))
+		for i, msg := range resp.Messages {
+			messages[i] = api.MessageFromProtoMessage(msg)
+		}
+
+		if !reflect.DeepEqual(messages, []*message.Message{}) {
+			t.Fatalf("Different objects")
+		}
+	}
+}
+
+func TestRecieveMeta(t *testing.T) {
+	ctx := context.Background()
+	topicName := "TestRecieveMeta"
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	client := api.NewBrokerServiceClient(conn)
+
+	messagesWithRoute := generateMessages(1, topicName, 20)
+	{
+		resp, err := client.CreateTopic(ctx, &api.CreateTopicsRequest{
+			Topic: topicName,
+		})
+
+		checkError(t, err, resp, "CreateTopic failed")
+		log.Printf("CreateTopic Response: %+v", resp)
+	}
+
+	{
+		resp, err := client.SendMessages(ctx, &api.SendMessagesRequest{
+			Messages: messagesWithRoute,
+		})
+		checkError(t, err, resp, "ProduceBatch")
+		log.Printf("ProduceBatch Response: %+v", resp)
+	}
+
+	{
+		resp, err := client.RecieveMeta(ctx, &api.RecieveMetaRequest{
+			Topics: []string{topicName},
+		})
+		checkError(t, err, resp, "RecieveMeta")
+		log.Printf("RecieveMeta Response: %+v", resp)
+		if resp.ConsumedSeqs[topicName] != 0 {
+			t.Errorf("expected consumedSeq = 0 (got %d)", resp.ConsumedSeqs[topicName])
+		}
+		if resp.StoredSeqs[topicName] != 0 {
+			t.Errorf("expected storedSeq = 0 (got %d)", resp.StoredSeqs[topicName])
+		}
+	}
+
+	{
+		time.Sleep(3 * time.Second)
+		resp, err := client.RecieveMeta(ctx, &api.RecieveMetaRequest{
+			Topics: []string{topicName},
+		})
+		checkError(t, err, resp, "RecieveMeta")
+		log.Printf("RecieveMeta Response: %+v", resp)
+		if resp.ConsumedSeqs[topicName] != 0 {
+			t.Errorf("expected consumedSeq = 0 (got %d)", resp.ConsumedSeqs[topicName])
+		}
+		if resp.StoredSeqs[topicName] != 20 {
+			t.Errorf("expected storedSeq = 20 (got %d)", resp.StoredSeqs[topicName])
+		}
+	}
+
 }

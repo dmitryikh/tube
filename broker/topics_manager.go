@@ -94,6 +94,9 @@ func NewTopicManager(config *Config) (*TopicsManager, error) {
 	if err != nil {
 		return nil, err
 	}
+	for topicName, topic := range manager.Topics {
+		topicsStorage.SetConsumedSeq(topicName, topic.ConsumedSeq)
+	}
 	manager.Storage = topicsStorage
 	log.Info("Creating TopicsManager.. Done")
 	return manager, nil
@@ -169,26 +172,34 @@ func (m *TopicsManager) RemoveTopic(name string) error {
 	return nil
 }
 
-func (m *TopicsManager) GetConsumedSeq(topicsName string) (uint64, error) {
+func (m *TopicsManager) GetConsumedSeq(topicName string) (uint64, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	topic, isFound := m.Topics[topicsName]
+	topic, isFound := m.Topics[topicName]
 	if !isFound {
-		return 0, fmt.Errorf("topic '%s' doesn't exist", topicsName)
+		return 0, fmt.Errorf("topic '%s' doesn't exist", topicName)
 	}
 	return topic.ConsumedSeq, nil
 }
 
-func (m *TopicsManager) SetConsumedSeq(topicsName string, consumedSeq uint64) {
+func (m *TopicsManager) GetStoredSeq(topicName string) (uint64, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if topic, isFound := m.Topics[topicsName]; isFound {
+	return m.Storage.GetStoredSeq(topicName)
+}
+
+func (m *TopicsManager) SetConsumedSeq(topicName string, consumedSeq uint64) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if topic, isFound := m.Topics[topicName]; isFound {
 		if topic.ConsumedSeq < consumedSeq {
 			topic.ConsumedSeq = consumedSeq
 		}
 	}
+	m.Storage.SetConsumedSeq(topicName, consumedSeq)
 }
 
 func (m *TopicsManager) AddMessage(topicName string, msg *message.Message) error {
@@ -199,19 +210,31 @@ func (m *TopicsManager) AddMessage(topicName string, msg *message.Message) error
 		"topic": topicName,
 		"seq":   msg.Seq,
 	}).Trace("AddMessage")
-	return m.Storage.AddMessage(topicName, msg)
+	// TODO: change to batches
+	return m.Storage.AddMessages(topicName, []*message.Message{msg})
 }
 
-func (m *TopicsManager) GetNextMessage(topicName string, seq uint64) (*message.Message, error) {
+func (m *TopicsManager) GetMessages(topicName string, seq uint64, maxBatch uint32) ([]*message.Message, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-
 	log.WithFields(log.Fields{
-		"topic": topicName,
-		"seq":   seq,
-	}).Trace("GetNextMessage")
-	return m.Storage.GetNextMessage(topicName, seq)
+		"topic":    topicName,
+		"seq":      seq,
+		"maxBatch": maxBatch,
+	}).Trace("GetMessages")
+	return m.Storage.GetMessages(topicName, seq, maxBatch)
 }
+
+// func (m *TopicsManager) GetNextMessage(topicName string, seq uint64) (*message.Message, error) {
+// 	m.mutex.Lock()
+// 	defer m.mutex.Unlock()
+//
+// 	log.WithFields(log.Fields{
+// 		"topic": topicName,
+// 		"seq":   seq,
+// 	}).Trace("GetNextMessage")
+// 	return m.Storage.GetNextMessage(topicName, seq)
+// }
 
 func (m *TopicsManager) GetLastMessage(topicName string) (*message.Message, error) {
 	m.mutex.Lock()

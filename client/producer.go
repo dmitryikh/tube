@@ -1,10 +1,12 @@
 package client
 
 import (
+	"context"
 	"fmt"
+	"reflect"
 
-	"github.com/dmitryikh/tube"
 	"github.com/dmitryikh/tube/api"
+	"github.com/dmitryikh/tube/message"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +23,7 @@ type Producer struct {
 	producedSeqMap map[string]uint64
 	consumedSeqMap map[string]uint64
 	storedSeqMap   map[string]uint64
-	api            *api.BrokerServiceClient
+	api            api.BrokerServiceClient
 	connection     *grpc.ClientConn
 }
 
@@ -40,16 +42,95 @@ func NewProducer(config ProducerConfig, topics []string) (*Producer, error) {
 		storedSeqMap:   make(map[string]uint64),
 	}
 	for _, topic := range topics {
-		p.producedSeqMap[topic] = tube.UnsetSeq
-		p.consumedSeqMap[topic] = tube.UnsetSeq
-		p.storedSeqMap[topic] = tube.UnsetSeq
+		p.producedSeqMap[topic] = 0
+		p.consumedSeqMap[topic] = 0
+		p.storedSeqMap[topic] = 0
+	}
+
+	err := p.Connect()
+	if err != nil {
+		return nil, err
+	}
+	err = p.GetMeta()
+	if err != nil {
+		return nil, err
+	}
+	// set produced seq as consumed seq
+	for topicName, seq := range p.consumedSeqMap {
+		p.producedSeqMap[topicName] = seq
 	}
 	return p, nil
 }
 
-// func (p *Producer) Produce(topic string, messages []*message.Message) error {
-//
-// }
+func (p *Producer) SendMessages(topic string, messages []*message.Message) error {
+	ctx := context.Background()
+	apiMessages := make([]*api.MessageWithRoute, 0, len(messages))
+
+	producedSeq, isFound := p.producedSeqMap[topic]
+	if !isFound {
+		return fmt.Errorf("producer isn't subscribed to topic \"%s\"", topic)
+	}
+	request := &api.SendMessagesRequest{}
+	for _, msg := range messages {
+		if msg.Seq <= producedSeq {
+			return fmt.Errorf("message with seq = %d (topic = \"%s\") already produced", msg.Seq, topic)
+		}
+		producedSeq = msg.Seq
+		apiMsg := api.ProtoMessageFromMessage(msg)
+		apiMessages = append(apiMessages, &api.MessageWithRoute{
+			Message: apiMsg,
+			Topic:   topic,
+		})
+	}
+	request.Messages = apiMessages
+
+	response, err := p.api.SendMessages(ctx, request)
+	if err != nil {
+		return err
+	}
+	if err := checkResponseError(response); err != nil {
+		return fmt.Errorf("SendMessages failed: %s", err)
+	}
+	p.producedSeqMap[topic] = producedSeq
+	return nil
+}
+
+func (p *Producer) GetLastMessage(topic string) (*message.Message, error) {
+	ctx := context.Background()
+	request := &api.GetLastMessageRequest{
+		Topic: topic,
+	}
+	response, err := p.api.GetLastMessage(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkResponseError(response); err != nil {
+		return nil, fmt.Errorf("GetLastMessage failed: %s", err)
+	}
+	return api.MessageFromProtoMessage(response.Message), nil
+}
+
+func (p *Producer) GetMeta() error {
+	ctx := context.Background()
+	topics := make([]string, 0, len(p.producedSeqMap))
+	for topicName, _ := range p.producedSeqMap {
+		topics = append(topics, topicName)
+	}
+	request := &api.RecieveMetaRequest{
+		Topics: topics,
+	}
+
+	response, err := p.api.RecieveMeta(ctx, request)
+	if err != nil {
+		return err
+	}
+	if err := checkResponseError(response); err != nil {
+		return fmt.Errorf("GetMeta failed: %s", err)
+	}
+	p.consumedSeqMap = response.ConsumedSeqs
+	p.storedSeqMap = response.StoredSeqs
+	return nil
+}
 
 func (p *Producer) Connect() error {
 	err := p.Disconnect()
@@ -77,19 +158,31 @@ func (p *Producer) ProducedSeq(topic string) uint64 {
 	if seq, isFound := p.producedSeqMap[topic]; isFound {
 		return seq
 	}
-	return tube.UnsetSeq
+	return 0
 }
 
 func (p *Producer) ConsumedSeq(topic string) uint64 {
 	if seq, isFound := p.consumedSeqMap[topic]; isFound {
 		return seq
 	}
-	return tube.UnsetSeq
+	return 0
 }
 
 func (p *Producer) StoredSeq(topic string) uint64 {
 	if seq, isFound := p.storedSeqMap[topic]; isFound {
 		return seq
 	}
-	return tube.UnsetSeq
+	return 0
+}
+
+func checkResponseError(response interface{}) error {
+	v := reflect.Indirect(reflect.ValueOf(response))
+	erro, isOk := v.FieldByName("Error").Interface().(*api.Error)
+	if !isOk {
+		return fmt.Errorf("bad error cast")
+	}
+	if erro != nil {
+		return fmt.Errorf("%s (code %d)", erro.Message, erro.Code)
+	}
+	return nil
 }

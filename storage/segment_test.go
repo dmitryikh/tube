@@ -62,17 +62,14 @@ func TestActiveSegmentAppend(t *testing.T) {
 
 	{
 		segment := NewSegment()
-		_ = segment.AddMessage(messages[0])
-		_ = segment.AddMessage(messages[1])
-		_ = segment.AddMessage(messages[2])
+		_ = segment.AddMessages(messages[0:3])
 
 		err := segment.SaveToFile(path.Join(dataDir, segmentFilename(segment.Header)))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		_ = segment.AddMessage(messages[3])
-		_ = segment.AddMessage(messages[4])
+		_ = segment.AddMessages(messages[3:5])
 
 		sFilename = path.Join(dataDir, segmentFilename(segment.Header))
 		err = segment.AppendToFile(sFilename)
@@ -99,6 +96,155 @@ func TestActiveSegmentAppend(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(messages, segment.Messages) {
-		t.Fatalf("messages are not equal: expected: %v, got: %v", header, segment.Header)
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, segment.Messages)
+	}
+}
+
+func TestSegmentedIterator(t *testing.T) {
+	topicDir := path.Join(dataDir, "TestSegmentedIterator")
+	err := os.MkdirAll(topicDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	topicStorage := NewSegmentedTopicStorage()
+	activeSegment := topicStorage.ActiveSegment()
+	// err = activeSegment.SaveToFile(path.Join(topicDir, segmentFilename(activeSegment.Header)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	messages := []*message.Message{
+		createMessage(1, 0),
+		createMessage(2, 500),
+		createMessage(3, 100500),
+		createMessage(5, 100501),
+		createMessage(6, 100600),
+		createMessage(10, 100701),
+		createMessage(11, 1008000),
+	}
+	err = activeSegment.AddMessages(messages[0:5])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = activeSegment.AppendToFile(path.Join(topicDir, segmentFilename(activeSegment.Header)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = activeSegment.UnloadMessages()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topicStorage.Segments = append(topicStorage.Segments, NewSegment())
+	activeSegment = topicStorage.ActiveSegment()
+	err = activeSegment.AddMessages(messages[5:7])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	iter := NewSegmentedIterator(topicStorage.Segments)
+	err = iter.Seek(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iterMessages := make([]*message.Message, 0)
+	for {
+		msg, err := iter.Next()
+		if err != nil {
+			if _, ok := err.(StopIterationError); ok {
+				break
+			}
+			t.Fatal(err)
+		}
+		iterMessages = append(iterMessages, msg)
+	}
+
+	if !reflect.DeepEqual(messages, iterMessages) {
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, iterMessages)
+	}
+
+	iter = NewSegmentedIterator(topicStorage.Segments)
+	err = iter.Seek(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iterMessages = make([]*message.Message, 0)
+	for {
+		msg, err := iter.Next()
+		if err != nil {
+			if _, ok := err.(StopIterationError); ok {
+				break
+			}
+			t.Fatal(err)
+		}
+		iterMessages = append(iterMessages, msg)
+	}
+
+	if !reflect.DeepEqual(messages[4:7], iterMessages) {
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, iterMessages)
+	}
+
+	iter = NewSegmentedIterator(topicStorage.Segments)
+	err = iter.Seek(6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iterMessages = make([]*message.Message, 0)
+	for {
+		msg, err := iter.Next()
+		if err != nil {
+			if _, ok := err.(StopIterationError); ok {
+				break
+			}
+			t.Fatal(err)
+		}
+		iterMessages = append(iterMessages, msg)
+	}
+
+	if !reflect.DeepEqual(messages[5:7], iterMessages) {
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, iterMessages)
+	}
+
+	iter = NewSegmentedIterator(topicStorage.Segments)
+	err = iter.Seek(11)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iterMessages = make([]*message.Message, 0)
+	for {
+		msg, err := iter.Next()
+		if err != nil {
+			if _, ok := err.(StopIterationError); ok {
+				break
+			}
+			t.Fatal(err)
+		}
+		iterMessages = append(iterMessages, msg)
+	}
+
+	if !reflect.DeepEqual([]*message.Message{}, iterMessages) {
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, iterMessages)
+	}
+
+	iter = NewSegmentedIterator(topicStorage.Segments)
+	err = iter.Seek(100500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iterMessages = make([]*message.Message, 0)
+	for {
+		msg, err := iter.Next()
+		if err != nil {
+			if _, ok := err.(StopIterationError); ok {
+				break
+			}
+			t.Fatal(err)
+		}
+		iterMessages = append(iterMessages, msg)
+	}
+
+	if !reflect.DeepEqual([]*message.Message{}, iterMessages) {
+		t.Fatalf("messages are not equal: expected: %v, got: %v", messages, iterMessages)
 	}
 }

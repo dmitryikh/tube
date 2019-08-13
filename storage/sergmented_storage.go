@@ -40,12 +40,12 @@ type SegmentedTopicStorage struct {
 	consumedSeq     uint64
 }
 
-func NewSegmentedTopicStorage() (*SegmentedTopicStorage, error) {
-	segmentedTopicStorage := &SegmentedTopicStorage{
+func NewSegmentedTopicStorage() *SegmentedTopicStorage {
+	return &SegmentedTopicStorage{
 		Segments:        []*Segment{NewSegment()},
 		lastTimeFlushed: time.Now(),
+		consumedSeq:     0,
 	}
-	return segmentedTopicStorage, nil
 }
 
 func (s *SegmentedTopicStorage) ActiveSegment() *Segment {
@@ -113,16 +113,13 @@ func (s *SegmentedStorage) AddTopic(name string) error {
 		return err
 	}
 
-	topicStorage, err := NewSegmentedTopicStorage()
-	if err != nil {
-		return err
-	}
+	topicStorage := NewSegmentedTopicStorage()
 
-	activeSegment := topicStorage.ActiveSegment()
-	err = activeSegment.SaveToFile(path.Join(topicDir, segmentFilename(activeSegment.Header)))
-	if err != nil {
-		return err
-	}
+	// activeSegment := topicStorage.ActiveSegment()
+	// err = activeSegment.SaveToFile(path.Join(topicDir, segmentFilename(activeSegment.Header)))
+	// if err != nil {
+	// 	return err
+	// }
 
 	s.Topics[name] = topicStorage
 	return nil
@@ -144,48 +141,61 @@ func (s *SegmentedStorage) RemoveTopic(name string) error {
 	return nil
 }
 
-func (s *SegmentedStorage) AddMessage(topicName string, msg *message.Message) error {
+func (s *SegmentedStorage) AddMessages(topicName string, messages []*message.Message) error {
 	s.lock.RLock()
-	defer s.lock.RUnlock()
 	var err error
 	topicStorage, isFound := s.Topics[topicName]
 	if !isFound {
+		s.lock.RUnlock()
 		return fmt.Errorf("topic '%s' doesn't exist", topicName)
 	}
-	err = topicStorage.ActiveSegment().AddMessage(msg)
-	// TODO: change segment in case of overflow
-	// need to Lock() to write
+	activeSegment := topicStorage.ActiveSegment()
+	err = activeSegment.AddMessages(messages)
+	if err != nil {
+		return err
+	}
+	s.lock.RUnlock()
+	if activeSegment.MessagesSize() >= s.config.SegmentMaxSizeBytes ||
+		len(activeSegment.Messages) >= s.config.SegmentMaxSizeMessages {
+		// initiate new segment
+		s.lock.Lock()
+		defer s.lock.Unlock()
+
+		segmentPath := path.Join(s.config.TopicsDir, topicName, segmentFilename(activeSegment.Header))
+		err := activeSegment.AppendToFile(segmentPath)
+		if err != nil {
+			return err
+		}
+		topicStorage.Segments = append(topicStorage.Segments, NewSegment())
+	}
 	return err
 }
 
-func (s *SegmentedStorage) GetNextMessage(topicName string, seq uint64) (*message.Message, error) {
+func (s *SegmentedStorage) GetMessages(topicName string, seq uint64, maxBatch uint32) ([]*message.Message, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	topicStorage, isFound := s.Topics[topicName]
 	if !isFound {
 		return nil, fmt.Errorf("topic '%s' doesn't exist", topicName)
 	}
-	foundSegmentIdx := -1
-	for i := 0; i < len(topicStorage.Segments); i++ {
-		if topicStorage.Segments[i].Header.SeqMax < seq {
-			foundSegmentIdx = i
-			break
-		}
-	}
-	if foundSegmentIdx == -1 {
-		seqMax := topicStorage.Segments[len(topicStorage.Segments)-1].Header.SeqMax
-		return nil, fmt.Errorf("seq >= seqMax (%d >= %d)", seq, seqMax)
-	}
 
-	foundSegment := topicStorage.Segments[foundSegmentIdx]
-	if foundSegment.IsPartiallyLoaded() {
-		// TODO: need to acquire write lock here
-		err := foundSegment.LoadMessages()
-		if err != nil {
-			return nil, fmt.Errorf("error while loading segment %s: %s", foundSegment.SegmentFilePath, err)
-		}
+	iter := NewSegmentedIterator(topicStorage.Segments)
+	err := iter.Seek(seq)
+	if err != nil {
+		return nil, err
 	}
-	return foundSegment.GetNextMessage(seq)
+	messages := make([]*message.Message, 0)
+	for uint32(len(messages)) < maxBatch {
+		msg, err := iter.Next()
+		if err != nil {
+			if _, ok := err.(StopIterationError); ok {
+				return messages, nil
+			}
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
 }
 
 func (s *SegmentedStorage) GetLastMessage(topicName string) (*message.Message, error) {
@@ -195,24 +205,12 @@ func (s *SegmentedStorage) GetLastMessage(topicName string) (*message.Message, e
 	if !isFound {
 		return nil, fmt.Errorf("topic '%s' doesn't exist", topicName)
 	}
-	activeSegment := topicStorage.ActiveSegment()
-	if activeSegment.IsEmpty() {
-		nSegments := len(topicStorage.Segments)
-		if nSegments > 1 {
-			prevSegment := topicStorage.Segments[nSegments-2]
-			if prevSegment.IsPartiallyLoaded() {
-				// TODO: need to acquire write lock here
-				err := prevSegment.LoadMessages()
-				if err != nil {
-					return nil, fmt.Errorf("error while loading segment %s: %s", prevSegment.SegmentFilePath, err)
-				}
-			}
-			return prevSegment.GetLastMessage()
-		}
-		return nil, fmt.Errorf("no messages in topic \"%s\"", topicName)
+	iter := NewSegmentedIterator(topicStorage.Segments)
+	err := iter.SeekEnd()
+	if err != nil {
+		return nil, err
 	}
-
-	return activeSegment.GetLastMessage()
+	return iter.Next()
 }
 
 func (s *SegmentedStorage) Shutdown() error {
@@ -232,6 +230,7 @@ func (s *SegmentedStorage) Shutdown() error {
 			}
 		}
 
+		// TODO: change to AppendToFile?
 		err := activeSegment.SaveToFile(segmentPath)
 		if err != nil && firstError == nil {
 			firstError = err
@@ -285,6 +284,36 @@ func (s *SegmentedStorage) OpenTopic(topicName string) error {
 	return nil
 }
 
+func (s *SegmentedStorage) SetConsumedSeq(topicName string, seq uint64) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if topic, isFound := s.Topics[topicName]; isFound {
+		if topic.consumedSeq < seq {
+			topic.consumedSeq = seq
+		}
+	}
+}
+
+func (s *SegmentedStorage) GetStoredSeq(topicName string) (uint64, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if topic, isFound := s.Topics[topicName]; isFound {
+		activeSegment := topic.ActiveSegment()
+		if activeSegment.SegmentFilePath != "" {
+			_, maxStoredSeq := minMaxSeqsFromSegmentFilename(activeSegment.SegmentFilePath)
+			return maxStoredSeq, nil
+		}
+		n := len(topic.Segments)
+		if n > 1 {
+			preLastSegment := topic.Segments[n-2]
+			_, maxStoredSeq := minMaxSeqsFromSegmentFilename(preLastSegment.SegmentFilePath)
+			return maxStoredSeq, nil
+		}
+	}
+	// return 0, fmt.Errorf("can't find last stored seq fro topic \"%s\"", topicName)
+	return 0, nil
+}
+
 func listSegments(topicPath string) ([]*Segment, error) {
 	files, err := ioutil.ReadDir(topicPath)
 	if err != nil {
@@ -313,7 +342,7 @@ func listSegments(topicPath string) ([]*Segment, error) {
 }
 
 func housekeeping(s *SegmentedStorage) {
-	if s.config.HousekeepingPeriodSec < defaultHousekeepingPeriodSec {
+	if s.config.HousekeepingPeriodSec < 1 {
 		s.config.HousekeepingPeriodSec = defaultHousekeepingPeriodSec
 	}
 	log.WithField("period", s.config.HousekeepingPeriodSec).
@@ -347,7 +376,8 @@ func housekeepingInternal(s *SegmentedStorage) {
 				"topic":   topicName,
 				"segment": newSegmentFilename,
 			}).Info("Do housekeeping.. Flushing to disk")
-			err := activeSegment.AppendToFile(newSegmentFilename)
+			segmentPath := path.Join(s.config.TopicsDir, topicName, newSegmentFilename)
+			err := activeSegment.AppendToFile(segmentPath)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"topic":   topicName,

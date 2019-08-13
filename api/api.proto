@@ -2,11 +2,14 @@ syntax = "proto3";
 
 package api;
 
-service BrokerService {
-    rpc ProduceBatch (MessagesBatchRequest) returns (MessagesBatchResponse);
+  service BrokerService {
+    rpc SendMessages (SendMessagesRequest) returns (SendMessagesResponse);
     rpc GetLastMessage (GetLastMessageRequest) returns (GetLastMessageResponse);
-    rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
+    // rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
     rpc CreateTopic (CreateTopicsRequest) returns (CreateTopicsResponse);
+    rpc RecieveMessages (RecieveMessagesRequest) returns (RecieveMessagesResponse);
+    rpc SendMeta (SendMetaRequest) returns (SendMetaResponse);
+    rpc RecieveMeta (RecieveMetaRequest) returns (RecieveMetaResponse);
     // TODO: Delete or Remove
     // rpc DeleteTopic (DeleteTopicRequest) returns (DeleteTopicResponse);
     // rpc ListTopics (ListTopicsRequest) returns (ListTopicResponse);
@@ -25,19 +28,30 @@ service BrokerService {
 
   }
 
-  message MessagesBatchRequest {
-    repeated MessageWithRoute messages = 1;
-  }
-
   message Error {
     uint64 code = 1;
     string message = 2;
   }
 
-  message MessagesBatchResponse {
+  message SendMessagesRequest {
+    repeated MessageWithRoute messages = 1;
+  }
+
+  message SendMessagesResponse {
     Error error = 1;
-    map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
-    map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
+    // map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
+    // map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
+  }
+
+  message RecieveMessagesRequest {
+    string topic = 1;
+    uint64 seq = 2;
+    uint32 maxBatch = 3;
+  }
+
+  message RecieveMessagesResponse {
+    Error error = 1;
+    repeated Message messages = 2;
   }
 
   message GetLastMessageRequest {
@@ -49,20 +63,41 @@ service BrokerService {
     Message message = 2;
   }
 
-  message GetNextMessageRequest {
-      string topic = 1;
-      uint64 seq = 2;
-  }
+  // message GetNextMessageRequest {
+  //     string topic = 1;
+  //     uint64 seq = 2;
+  // }
 
-  message GetNextMessageResponse {
-    Error error = 1;
-    Message message = 2;
-  }
+  // message GetNextMessageResponse {
+  //   Error error = 1;
+  //   Message message = 2;
+  // }
 
   message CreateTopicsRequest {
       string topic = 1;
   }
 
   message CreateTopicsResponse {
+    Error error = 1;
+  }
+
+  message RecieveMetaRequest {
+    repeated string topics = 1;
+  }
+
+  message RecieveMetaResponse {
+    Error error = 1;
+    map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
+    map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
+    map<string /*topicName*/, uint64 /*seqNum*/> storedSeqs = 4;
+  }
+
+  message SendMetaRequest {
+    map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
+    map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
+    map<string /*topicName*/, uint64 /*seqNum*/> storedSeqs = 4;
+  }
+
+  message SendMetaResponse {
     Error error = 1;
   }

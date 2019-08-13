@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"io/ioutil"
+	"path"
 	"strconv"
 
 	"github.com/dmitryikh/tube"
@@ -16,7 +17,8 @@ func isSegmentFile(filePath string) bool {
 	return segmentFilePathPattern.MatchString(filePath)
 }
 
-func minMaxSeqsFromSegmentFilename(filename string) (uint64, uint64) {
+func minMaxSeqsFromSegmentFilename(filepath string) (uint64, uint64) {
+	filename := path.Base(filepath)
 	groups := segmentFilePathPattern.FindStringSubmatch(filename)
 	if len(groups) != 3 {
 		return tube.UnsetSeq, tube.UnsetSeq

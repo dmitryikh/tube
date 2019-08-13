@@ -134,45 +134,6 @@ func (m *MessageWithRoute) GetTopic() string {
 	return ""
 }
 
-type MessagesBatchRequest struct {
-	Messages             []*MessageWithRoute `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
-}
-
-func (m *MessagesBatchRequest) Reset()         { *m = MessagesBatchRequest{} }
-func (m *MessagesBatchRequest) String() string { return proto.CompactTextString(m) }
-func (*MessagesBatchRequest) ProtoMessage()    {}
-func (*MessagesBatchRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{2}
-}
-
-func (m *MessagesBatchRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MessagesBatchRequest.Unmarshal(m, b)
-}
-func (m *MessagesBatchRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MessagesBatchRequest.Marshal(b, m, deterministic)
-}
-func (m *MessagesBatchRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MessagesBatchRequest.Merge(m, src)
-}
-func (m *MessagesBatchRequest) XXX_Size() int {
-	return xxx_messageInfo_MessagesBatchRequest.Size(m)
-}
-func (m *MessagesBatchRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_MessagesBatchRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MessagesBatchRequest proto.InternalMessageInfo
-
-func (m *MessagesBatchRequest) GetMessages() []*MessageWithRoute {
-	if m != nil {
-		return m.Messages
-	}
-	return nil
-}
-
 type Error struct {
 	Code                 uint64   `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	Message              string   `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
@@ -185,7 +146,7 @@ func (m *Error) Reset()         { *m = Error{} }
 func (m *Error) String() string { return proto.CompactTextString(m) }
 func (*Error) ProtoMessage()    {}
 func (*Error) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{3}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{2}
 }
 
 func (m *Error) XXX_Unmarshal(b []byte) error {
@@ -220,57 +181,182 @@ func (m *Error) GetMessage() string {
 	return ""
 }
 
-type MessagesBatchResponse struct {
-	Error                *Error            `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	ConsumedSeqs         map[string]uint64 `protobuf:"bytes,2,rep,name=consumedSeqs,proto3" json:"consumedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	ProducedSeqs         map[string]uint64 `protobuf:"bytes,3,rep,name=producedSeqs,proto3" json:"producedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+type SendMessagesRequest struct {
+	Messages             []*MessageWithRoute `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
 }
 
-func (m *MessagesBatchResponse) Reset()         { *m = MessagesBatchResponse{} }
-func (m *MessagesBatchResponse) String() string { return proto.CompactTextString(m) }
-func (*MessagesBatchResponse) ProtoMessage()    {}
-func (*MessagesBatchResponse) Descriptor() ([]byte, []int) {
+func (m *SendMessagesRequest) Reset()         { *m = SendMessagesRequest{} }
+func (m *SendMessagesRequest) String() string { return proto.CompactTextString(m) }
+func (*SendMessagesRequest) ProtoMessage()    {}
+func (*SendMessagesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{3}
+}
+
+func (m *SendMessagesRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendMessagesRequest.Unmarshal(m, b)
+}
+func (m *SendMessagesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendMessagesRequest.Marshal(b, m, deterministic)
+}
+func (m *SendMessagesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendMessagesRequest.Merge(m, src)
+}
+func (m *SendMessagesRequest) XXX_Size() int {
+	return xxx_messageInfo_SendMessagesRequest.Size(m)
+}
+func (m *SendMessagesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendMessagesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SendMessagesRequest proto.InternalMessageInfo
+
+func (m *SendMessagesRequest) GetMessages() []*MessageWithRoute {
+	if m != nil {
+		return m.Messages
+	}
+	return nil
+}
+
+type SendMessagesResponse struct {
+	Error                *Error   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SendMessagesResponse) Reset()         { *m = SendMessagesResponse{} }
+func (m *SendMessagesResponse) String() string { return proto.CompactTextString(m) }
+func (*SendMessagesResponse) ProtoMessage()    {}
+func (*SendMessagesResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_00212fb1f9d3bf1c, []int{4}
 }
 
-func (m *MessagesBatchResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MessagesBatchResponse.Unmarshal(m, b)
+func (m *SendMessagesResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendMessagesResponse.Unmarshal(m, b)
 }
-func (m *MessagesBatchResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MessagesBatchResponse.Marshal(b, m, deterministic)
+func (m *SendMessagesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendMessagesResponse.Marshal(b, m, deterministic)
 }
-func (m *MessagesBatchResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MessagesBatchResponse.Merge(m, src)
+func (m *SendMessagesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendMessagesResponse.Merge(m, src)
 }
-func (m *MessagesBatchResponse) XXX_Size() int {
-	return xxx_messageInfo_MessagesBatchResponse.Size(m)
+func (m *SendMessagesResponse) XXX_Size() int {
+	return xxx_messageInfo_SendMessagesResponse.Size(m)
 }
-func (m *MessagesBatchResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_MessagesBatchResponse.DiscardUnknown(m)
+func (m *SendMessagesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendMessagesResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MessagesBatchResponse proto.InternalMessageInfo
+var xxx_messageInfo_SendMessagesResponse proto.InternalMessageInfo
 
-func (m *MessagesBatchResponse) GetError() *Error {
+func (m *SendMessagesResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
 	return nil
 }
 
-func (m *MessagesBatchResponse) GetConsumedSeqs() map[string]uint64 {
+type RecieveMessagesRequest struct {
+	Topic                string   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	Seq                  uint64   `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
+	MaxBatch             uint32   `protobuf:"varint,3,opt,name=maxBatch,proto3" json:"maxBatch,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RecieveMessagesRequest) Reset()         { *m = RecieveMessagesRequest{} }
+func (m *RecieveMessagesRequest) String() string { return proto.CompactTextString(m) }
+func (*RecieveMessagesRequest) ProtoMessage()    {}
+func (*RecieveMessagesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{5}
+}
+
+func (m *RecieveMessagesRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RecieveMessagesRequest.Unmarshal(m, b)
+}
+func (m *RecieveMessagesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RecieveMessagesRequest.Marshal(b, m, deterministic)
+}
+func (m *RecieveMessagesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RecieveMessagesRequest.Merge(m, src)
+}
+func (m *RecieveMessagesRequest) XXX_Size() int {
+	return xxx_messageInfo_RecieveMessagesRequest.Size(m)
+}
+func (m *RecieveMessagesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RecieveMessagesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RecieveMessagesRequest proto.InternalMessageInfo
+
+func (m *RecieveMessagesRequest) GetTopic() string {
 	if m != nil {
-		return m.ConsumedSeqs
+		return m.Topic
+	}
+	return ""
+}
+
+func (m *RecieveMessagesRequest) GetSeq() uint64 {
+	if m != nil {
+		return m.Seq
+	}
+	return 0
+}
+
+func (m *RecieveMessagesRequest) GetMaxBatch() uint32 {
+	if m != nil {
+		return m.MaxBatch
+	}
+	return 0
+}
+
+type RecieveMessagesResponse struct {
+	Error                *Error     `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Messages             []*Message `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *RecieveMessagesResponse) Reset()         { *m = RecieveMessagesResponse{} }
+func (m *RecieveMessagesResponse) String() string { return proto.CompactTextString(m) }
+func (*RecieveMessagesResponse) ProtoMessage()    {}
+func (*RecieveMessagesResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{6}
+}
+
+func (m *RecieveMessagesResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RecieveMessagesResponse.Unmarshal(m, b)
+}
+func (m *RecieveMessagesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RecieveMessagesResponse.Marshal(b, m, deterministic)
+}
+func (m *RecieveMessagesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RecieveMessagesResponse.Merge(m, src)
+}
+func (m *RecieveMessagesResponse) XXX_Size() int {
+	return xxx_messageInfo_RecieveMessagesResponse.Size(m)
+}
+func (m *RecieveMessagesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RecieveMessagesResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RecieveMessagesResponse proto.InternalMessageInfo
+
+func (m *RecieveMessagesResponse) GetError() *Error {
+	if m != nil {
+		return m.Error
 	}
 	return nil
 }
 
-func (m *MessagesBatchResponse) GetProducedSeqs() map[string]uint64 {
+func (m *RecieveMessagesResponse) GetMessages() []*Message {
 	if m != nil {
-		return m.ProducedSeqs
+		return m.Messages
 	}
 	return nil
 }
@@ -286,7 +372,7 @@ func (m *GetLastMessageRequest) Reset()         { *m = GetLastMessageRequest{} }
 func (m *GetLastMessageRequest) String() string { return proto.CompactTextString(m) }
 func (*GetLastMessageRequest) ProtoMessage()    {}
 func (*GetLastMessageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{5}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{7}
 }
 
 func (m *GetLastMessageRequest) XXX_Unmarshal(b []byte) error {
@@ -326,7 +412,7 @@ func (m *GetLastMessageResponse) Reset()         { *m = GetLastMessageResponse{}
 func (m *GetLastMessageResponse) String() string { return proto.CompactTextString(m) }
 func (*GetLastMessageResponse) ProtoMessage()    {}
 func (*GetLastMessageResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{6}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{8}
 }
 
 func (m *GetLastMessageResponse) XXX_Unmarshal(b []byte) error {
@@ -355,100 +441,6 @@ func (m *GetLastMessageResponse) GetError() *Error {
 }
 
 func (m *GetLastMessageResponse) GetMessage() *Message {
-	if m != nil {
-		return m.Message
-	}
-	return nil
-}
-
-type GetNextMessageRequest struct {
-	Topic                string   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Seq                  uint64   `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *GetNextMessageRequest) Reset()         { *m = GetNextMessageRequest{} }
-func (m *GetNextMessageRequest) String() string { return proto.CompactTextString(m) }
-func (*GetNextMessageRequest) ProtoMessage()    {}
-func (*GetNextMessageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{7}
-}
-
-func (m *GetNextMessageRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetNextMessageRequest.Unmarshal(m, b)
-}
-func (m *GetNextMessageRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetNextMessageRequest.Marshal(b, m, deterministic)
-}
-func (m *GetNextMessageRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetNextMessageRequest.Merge(m, src)
-}
-func (m *GetNextMessageRequest) XXX_Size() int {
-	return xxx_messageInfo_GetNextMessageRequest.Size(m)
-}
-func (m *GetNextMessageRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetNextMessageRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetNextMessageRequest proto.InternalMessageInfo
-
-func (m *GetNextMessageRequest) GetTopic() string {
-	if m != nil {
-		return m.Topic
-	}
-	return ""
-}
-
-func (m *GetNextMessageRequest) GetSeq() uint64 {
-	if m != nil {
-		return m.Seq
-	}
-	return 0
-}
-
-type GetNextMessageResponse struct {
-	Error                *Error   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Message              *Message `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *GetNextMessageResponse) Reset()         { *m = GetNextMessageResponse{} }
-func (m *GetNextMessageResponse) String() string { return proto.CompactTextString(m) }
-func (*GetNextMessageResponse) ProtoMessage()    {}
-func (*GetNextMessageResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{8}
-}
-
-func (m *GetNextMessageResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetNextMessageResponse.Unmarshal(m, b)
-}
-func (m *GetNextMessageResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetNextMessageResponse.Marshal(b, m, deterministic)
-}
-func (m *GetNextMessageResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetNextMessageResponse.Merge(m, src)
-}
-func (m *GetNextMessageResponse) XXX_Size() int {
-	return xxx_messageInfo_GetNextMessageResponse.Size(m)
-}
-func (m *GetNextMessageResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetNextMessageResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetNextMessageResponse proto.InternalMessageInfo
-
-func (m *GetNextMessageResponse) GetError() *Error {
-	if m != nil {
-		return m.Error
-	}
-	return nil
-}
-
-func (m *GetNextMessageResponse) GetMessage() *Message {
 	if m != nil {
 		return m.Message
 	}
@@ -533,61 +525,275 @@ func (m *CreateTopicsResponse) GetError() *Error {
 	return nil
 }
 
+type RecieveMetaRequest struct {
+	Topics               []string `protobuf:"bytes,1,rep,name=topics,proto3" json:"topics,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RecieveMetaRequest) Reset()         { *m = RecieveMetaRequest{} }
+func (m *RecieveMetaRequest) String() string { return proto.CompactTextString(m) }
+func (*RecieveMetaRequest) ProtoMessage()    {}
+func (*RecieveMetaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{11}
+}
+
+func (m *RecieveMetaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RecieveMetaRequest.Unmarshal(m, b)
+}
+func (m *RecieveMetaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RecieveMetaRequest.Marshal(b, m, deterministic)
+}
+func (m *RecieveMetaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RecieveMetaRequest.Merge(m, src)
+}
+func (m *RecieveMetaRequest) XXX_Size() int {
+	return xxx_messageInfo_RecieveMetaRequest.Size(m)
+}
+func (m *RecieveMetaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RecieveMetaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RecieveMetaRequest proto.InternalMessageInfo
+
+func (m *RecieveMetaRequest) GetTopics() []string {
+	if m != nil {
+		return m.Topics
+	}
+	return nil
+}
+
+type RecieveMetaResponse struct {
+	Error                *Error            `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	ConsumedSeqs         map[string]uint64 `protobuf:"bytes,2,rep,name=consumedSeqs,proto3" json:"consumedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	ProducedSeqs         map[string]uint64 `protobuf:"bytes,3,rep,name=producedSeqs,proto3" json:"producedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	StoredSeqs           map[string]uint64 `protobuf:"bytes,4,rep,name=storedSeqs,proto3" json:"storedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *RecieveMetaResponse) Reset()         { *m = RecieveMetaResponse{} }
+func (m *RecieveMetaResponse) String() string { return proto.CompactTextString(m) }
+func (*RecieveMetaResponse) ProtoMessage()    {}
+func (*RecieveMetaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{12}
+}
+
+func (m *RecieveMetaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RecieveMetaResponse.Unmarshal(m, b)
+}
+func (m *RecieveMetaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RecieveMetaResponse.Marshal(b, m, deterministic)
+}
+func (m *RecieveMetaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RecieveMetaResponse.Merge(m, src)
+}
+func (m *RecieveMetaResponse) XXX_Size() int {
+	return xxx_messageInfo_RecieveMetaResponse.Size(m)
+}
+func (m *RecieveMetaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RecieveMetaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RecieveMetaResponse proto.InternalMessageInfo
+
+func (m *RecieveMetaResponse) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *RecieveMetaResponse) GetConsumedSeqs() map[string]uint64 {
+	if m != nil {
+		return m.ConsumedSeqs
+	}
+	return nil
+}
+
+func (m *RecieveMetaResponse) GetProducedSeqs() map[string]uint64 {
+	if m != nil {
+		return m.ProducedSeqs
+	}
+	return nil
+}
+
+func (m *RecieveMetaResponse) GetStoredSeqs() map[string]uint64 {
+	if m != nil {
+		return m.StoredSeqs
+	}
+	return nil
+}
+
+type SendMetaRequest struct {
+	ConsumedSeqs         map[string]uint64 `protobuf:"bytes,2,rep,name=consumedSeqs,proto3" json:"consumedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	ProducedSeqs         map[string]uint64 `protobuf:"bytes,3,rep,name=producedSeqs,proto3" json:"producedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	StoredSeqs           map[string]uint64 `protobuf:"bytes,4,rep,name=storedSeqs,proto3" json:"storedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *SendMetaRequest) Reset()         { *m = SendMetaRequest{} }
+func (m *SendMetaRequest) String() string { return proto.CompactTextString(m) }
+func (*SendMetaRequest) ProtoMessage()    {}
+func (*SendMetaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{13}
+}
+
+func (m *SendMetaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendMetaRequest.Unmarshal(m, b)
+}
+func (m *SendMetaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendMetaRequest.Marshal(b, m, deterministic)
+}
+func (m *SendMetaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendMetaRequest.Merge(m, src)
+}
+func (m *SendMetaRequest) XXX_Size() int {
+	return xxx_messageInfo_SendMetaRequest.Size(m)
+}
+func (m *SendMetaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendMetaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SendMetaRequest proto.InternalMessageInfo
+
+func (m *SendMetaRequest) GetConsumedSeqs() map[string]uint64 {
+	if m != nil {
+		return m.ConsumedSeqs
+	}
+	return nil
+}
+
+func (m *SendMetaRequest) GetProducedSeqs() map[string]uint64 {
+	if m != nil {
+		return m.ProducedSeqs
+	}
+	return nil
+}
+
+func (m *SendMetaRequest) GetStoredSeqs() map[string]uint64 {
+	if m != nil {
+		return m.StoredSeqs
+	}
+	return nil
+}
+
+type SendMetaResponse struct {
+	Error                *Error   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SendMetaResponse) Reset()         { *m = SendMetaResponse{} }
+func (m *SendMetaResponse) String() string { return proto.CompactTextString(m) }
+func (*SendMetaResponse) ProtoMessage()    {}
+func (*SendMetaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{14}
+}
+
+func (m *SendMetaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendMetaResponse.Unmarshal(m, b)
+}
+func (m *SendMetaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendMetaResponse.Marshal(b, m, deterministic)
+}
+func (m *SendMetaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendMetaResponse.Merge(m, src)
+}
+func (m *SendMetaResponse) XXX_Size() int {
+	return xxx_messageInfo_SendMetaResponse.Size(m)
+}
+func (m *SendMetaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendMetaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SendMetaResponse proto.InternalMessageInfo
+
+func (m *SendMetaResponse) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Message)(nil), "api.Message")
 	proto.RegisterMapType((map[string][]byte)(nil), "api.Message.MetaEntry")
 	proto.RegisterType((*MessageWithRoute)(nil), "api.MessageWithRoute")
-	proto.RegisterType((*MessagesBatchRequest)(nil), "api.MessagesBatchRequest")
 	proto.RegisterType((*Error)(nil), "api.Error")
-	proto.RegisterType((*MessagesBatchResponse)(nil), "api.MessagesBatchResponse")
-	proto.RegisterMapType((map[string]uint64)(nil), "api.MessagesBatchResponse.ConsumedSeqsEntry")
-	proto.RegisterMapType((map[string]uint64)(nil), "api.MessagesBatchResponse.ProducedSeqsEntry")
+	proto.RegisterType((*SendMessagesRequest)(nil), "api.SendMessagesRequest")
+	proto.RegisterType((*SendMessagesResponse)(nil), "api.SendMessagesResponse")
+	proto.RegisterType((*RecieveMessagesRequest)(nil), "api.RecieveMessagesRequest")
+	proto.RegisterType((*RecieveMessagesResponse)(nil), "api.RecieveMessagesResponse")
 	proto.RegisterType((*GetLastMessageRequest)(nil), "api.GetLastMessageRequest")
 	proto.RegisterType((*GetLastMessageResponse)(nil), "api.GetLastMessageResponse")
-	proto.RegisterType((*GetNextMessageRequest)(nil), "api.GetNextMessageRequest")
-	proto.RegisterType((*GetNextMessageResponse)(nil), "api.GetNextMessageResponse")
 	proto.RegisterType((*CreateTopicsRequest)(nil), "api.CreateTopicsRequest")
 	proto.RegisterType((*CreateTopicsResponse)(nil), "api.CreateTopicsResponse")
+	proto.RegisterType((*RecieveMetaRequest)(nil), "api.RecieveMetaRequest")
+	proto.RegisterType((*RecieveMetaResponse)(nil), "api.RecieveMetaResponse")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.ConsumedSeqsEntry")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.ProducedSeqsEntry")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.StoredSeqsEntry")
+	proto.RegisterType((*SendMetaRequest)(nil), "api.SendMetaRequest")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.SendMetaRequest.ConsumedSeqsEntry")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.SendMetaRequest.ProducedSeqsEntry")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.SendMetaRequest.StoredSeqsEntry")
+	proto.RegisterType((*SendMetaResponse)(nil), "api.SendMetaResponse")
 }
 
 func init() { proto.RegisterFile("api.proto", fileDescriptor_00212fb1f9d3bf1c) }
 
 var fileDescriptor_00212fb1f9d3bf1c = []byte{
-	// 533 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0xdf, 0x6a, 0x13, 0x41,
-	0x14, 0xc6, 0xd9, 0x4d, 0x62, 0xcc, 0x49, 0x94, 0x3a, 0x26, 0x65, 0xbb, 0x7a, 0x11, 0xf6, 0xa2,
-	0x04, 0xff, 0x04, 0x8c, 0x88, 0xc5, 0x9b, 0x42, 0x4a, 0x90, 0x82, 0x95, 0x30, 0x15, 0xbc, 0x9e,
-	0x6e, 0x0e, 0x76, 0x69, 0x93, 0xd9, 0xcc, 0x4c, 0x8a, 0x79, 0x2b, 0x2f, 0x7d, 0x1b, 0x5f, 0x45,
-	0x66, 0x76, 0x76, 0x33, 0xdb, 0x6c, 0x6d, 0x84, 0xde, 0xcd, 0x9f, 0x93, 0xdf, 0xf7, 0xed, 0xf9,
-	0xce, 0x04, 0x5a, 0x2c, 0x4d, 0x86, 0xa9, 0xe0, 0x8a, 0x93, 0x1a, 0x4b, 0x93, 0xe8, 0xb7, 0x07,
-	0xcd, 0x33, 0x94, 0x92, 0xfd, 0x40, 0xb2, 0x07, 0x35, 0x89, 0xcb, 0xc0, 0xeb, 0x7b, 0x83, 0x3a,
-	0xd5, 0x4b, 0xf2, 0x12, 0x5a, 0x2a, 0x99, 0xa3, 0x54, 0x6c, 0x9e, 0x06, 0xbe, 0x39, 0xdf, 0x1c,
-	0x90, 0x00, 0x9a, 0x29, 0x5b, 0x5f, 0x73, 0x36, 0x0b, 0x6a, 0x7d, 0x6f, 0xd0, 0xa1, 0xf9, 0x96,
-	0xbc, 0x82, 0xfa, 0x1c, 0x15, 0x0b, 0xea, 0xfd, 0xda, 0xa0, 0x3d, 0xda, 0x1f, 0x6a, 0x51, 0xab,
-	0x32, 0x3c, 0x43, 0xc5, 0x26, 0x0b, 0x25, 0xd6, 0xd4, 0xd4, 0x84, 0x1f, 0xa1, 0x55, 0x1c, 0x69,
-	0x0b, 0x57, 0xb8, 0x36, 0x16, 0x5a, 0x54, 0x2f, 0x49, 0x17, 0x1a, 0x37, 0xec, 0x7a, 0x85, 0x46,
-	0xbe, 0x43, 0xb3, 0xcd, 0x27, 0xff, 0xc8, 0x8b, 0xa6, 0xb0, 0x67, 0x99, 0xdf, 0x13, 0x75, 0x49,
-	0xf9, 0x4a, 0x21, 0x39, 0x84, 0xe6, 0x3c, 0x3b, 0x33, 0x8c, 0xf6, 0xa8, 0xe3, 0x6a, 0xd3, 0xfc,
-	0x52, 0x53, 0x15, 0x4f, 0x93, 0xd8, 0x50, 0x5b, 0x34, 0xdb, 0x44, 0xa7, 0xd0, 0xb5, 0x95, 0x72,
-	0xcc, 0x54, 0x7c, 0x49, 0x71, 0xb9, 0x42, 0xa9, 0xc8, 0x3b, 0x78, 0x6c, 0x7f, 0x28, 0x03, 0xcf,
-	0x7c, 0x52, 0xcf, 0xc5, 0x16, 0xf2, 0xb4, 0x28, 0x8b, 0x3e, 0x40, 0x63, 0x22, 0x04, 0x17, 0x84,
-	0x40, 0x3d, 0xe6, 0x33, 0xb4, 0x5d, 0x35, 0x6b, 0xdd, 0xb8, 0xdc, 0x65, 0xa6, 0x9f, 0x6f, 0xa3,
-	0x3f, 0x3e, 0xf4, 0x6e, 0x59, 0x90, 0x29, 0x5f, 0x48, 0x24, 0x7d, 0x68, 0xa0, 0x06, 0xda, 0xef,
-	0x02, 0x63, 0xc0, 0x48, 0xd0, 0xec, 0x82, 0x4c, 0xa1, 0x13, 0xf3, 0x85, 0x5c, 0xcd, 0x71, 0x76,
-	0x8e, 0x4b, 0x19, 0xf8, 0xc6, 0xe9, 0x1b, 0xd7, 0x69, 0x99, 0x39, 0x3c, 0x71, 0xca, 0xb3, 0x48,
-	0x4a, 0x04, 0x4d, 0x4c, 0x05, 0x9f, 0xad, 0x62, 0x4b, 0xac, 0xdd, 0x4b, 0x9c, 0x3a, 0xe5, 0x96,
-	0xe8, 0x12, 0xc2, 0x63, 0x78, 0xb6, 0x25, 0x7a, 0x5f, 0xe8, 0x75, 0x27, 0x74, 0x0d, 0xd8, 0xd2,
-	0xf8, 0x1f, 0x40, 0xf4, 0x16, 0x7a, 0x9f, 0x51, 0x7d, 0x61, 0x52, 0xe5, 0x43, 0x61, 0x43, 0x2e,
-	0x46, 0xc2, 0x73, 0x47, 0xe2, 0x02, 0xf6, 0x6f, 0x97, 0xef, 0x1c, 0xc8, 0x61, 0x39, 0xe6, 0xbb,
-	0x86, 0x31, 0x3a, 0x36, 0x96, 0xbe, 0xe2, 0xcf, 0x9d, 0x2c, 0xe5, 0xcf, 0xd4, 0x2f, 0x9e, 0xa9,
-	0x35, 0x59, 0x02, 0x3c, 0xb8, 0xc9, 0xd7, 0xf0, 0xfc, 0x44, 0x20, 0x53, 0xf8, 0x4d, 0x9b, 0x90,
-	0xff, 0xee, 0xda, 0x11, 0x74, 0xcb, 0xc5, 0xbb, 0xda, 0x19, 0xfd, 0xf2, 0xe1, 0xc9, 0x58, 0xf0,
-	0x2b, 0x14, 0xe7, 0x28, 0x6e, 0x92, 0x18, 0xc9, 0x04, 0x3a, 0x36, 0x71, 0x33, 0x6a, 0xe4, 0xa0,
-	0x6a, 0xfc, 0x8c, 0x99, 0x30, 0xbc, 0x7b, 0x32, 0xc9, 0x29, 0x3c, 0x2d, 0x07, 0x49, 0xb2, 0xea,
-	0xca, 0x61, 0x08, 0x5f, 0x54, 0xde, 0x95, 0x50, 0x4e, 0xbb, 0x37, 0xa8, 0xed, 0x10, 0x37, 0xa8,
-	0xaa, 0x7c, 0xc6, 0xd0, 0x76, 0x1a, 0x45, 0x02, 0x53, 0x5b, 0xd1, 0xe7, 0xf0, 0xa0, 0xe2, 0x26,
-	0x63, 0x5c, 0x3c, 0x32, 0x7f, 0xe7, 0xef, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0x8e, 0x8d, 0x2f,
-	0x39, 0xdb, 0x05, 0x00, 0x00,
+	// 692 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x56, 0x5d, 0x4f, 0xdb, 0x30,
+	0x14, 0x55, 0x9a, 0xf2, 0xd1, 0xdb, 0x32, 0x98, 0x81, 0x92, 0x05, 0x1e, 0xaa, 0x68, 0x42, 0x15,
+	0xdb, 0x2a, 0x8d, 0x6d, 0x02, 0x4d, 0x9a, 0x36, 0xc1, 0xd0, 0x18, 0x82, 0x09, 0xb9, 0x93, 0xf6,
+	0xb2, 0x17, 0x93, 0x5e, 0x8d, 0x08, 0xda, 0x84, 0xd8, 0x45, 0xe3, 0x3f, 0xed, 0x61, 0x8f, 0xfb,
+	0x3d, 0xfb, 0x25, 0x53, 0x1c, 0x27, 0x75, 0x52, 0x97, 0x96, 0xd7, 0xbd, 0xc5, 0xf6, 0xbd, 0xe7,
+	0x9e, 0x7b, 0x8f, 0x7d, 0x5a, 0xa8, 0xb1, 0x28, 0xe8, 0x44, 0x71, 0x28, 0x42, 0x62, 0xb3, 0x28,
+	0xf0, 0xfe, 0x58, 0xb0, 0x70, 0x86, 0x9c, 0xb3, 0x1f, 0x48, 0x56, 0xc0, 0xe6, 0x78, 0xe3, 0x58,
+	0x2d, 0xab, 0x5d, 0xa5, 0xc9, 0x27, 0xd9, 0x82, 0x9a, 0x08, 0xfa, 0xc8, 0x05, 0xeb, 0x47, 0x4e,
+	0x45, 0xee, 0x8f, 0x36, 0x88, 0x03, 0x0b, 0x11, 0xbb, 0xbb, 0x0e, 0x59, 0xcf, 0xb1, 0x5b, 0x56,
+	0xbb, 0x41, 0xb3, 0x25, 0xd9, 0x81, 0x6a, 0x1f, 0x05, 0x73, 0xaa, 0x2d, 0xbb, 0x5d, 0xdf, 0x6d,
+	0x76, 0x92, 0xa2, 0xaa, 0x4a, 0xe7, 0x0c, 0x05, 0x3b, 0x1a, 0x88, 0xf8, 0x8e, 0xca, 0x18, 0x77,
+	0x0f, 0x6a, 0xf9, 0x56, 0x42, 0xe1, 0x0a, 0xef, 0x24, 0x85, 0x1a, 0x4d, 0x3e, 0xc9, 0x1a, 0xcc,
+	0xdd, 0xb2, 0xeb, 0x21, 0xca, 0xf2, 0x0d, 0x9a, 0x2e, 0xde, 0x56, 0xf6, 0x2d, 0xef, 0x1c, 0x56,
+	0x14, 0xe6, 0xb7, 0x40, 0x5c, 0xd2, 0x70, 0x28, 0x90, 0x6c, 0xc3, 0x42, 0x3f, 0xdd, 0x93, 0x18,
+	0xf5, 0xdd, 0x86, 0x5e, 0x9b, 0x66, 0x87, 0x09, 0xaa, 0x08, 0xa3, 0xc0, 0x97, 0xa8, 0x35, 0x9a,
+	0x2e, 0xbc, 0x37, 0x30, 0x77, 0x14, 0xc7, 0x61, 0x4c, 0x08, 0x54, 0xfd, 0xb0, 0x87, 0x6a, 0x14,
+	0xf2, 0x3b, 0xe9, 0x36, 0x83, 0x4e, 0x93, 0xb2, 0xa5, 0x77, 0x0c, 0xab, 0x5d, 0x1c, 0xf4, 0x54,
+	0x11, 0x4e, 0xf1, 0x66, 0x88, 0x5c, 0x90, 0x97, 0xb0, 0xa8, 0x22, 0xb8, 0x63, 0xc9, 0x41, 0xac,
+	0xeb, 0x64, 0x72, 0xd2, 0x34, 0x0f, 0xf3, 0xf6, 0x61, 0xad, 0x88, 0xc4, 0xa3, 0x70, 0xc0, 0x91,
+	0xb4, 0x60, 0x0e, 0x13, 0x62, 0xaa, 0x29, 0x90, 0x38, 0x92, 0x2a, 0x4d, 0x0f, 0xbc, 0xef, 0xd0,
+	0xa4, 0xe8, 0x07, 0x78, 0x8b, 0x65, 0x1a, 0x79, 0xab, 0x96, 0xd6, 0x6a, 0xa6, 0x75, 0x65, 0xa4,
+	0xb5, 0x0b, 0x8b, 0x7d, 0xf6, 0xf3, 0x80, 0x09, 0xff, 0x52, 0xca, 0xb9, 0x44, 0xf3, 0xb5, 0x87,
+	0xb0, 0x31, 0x86, 0x3e, 0x2b, 0x35, 0xd2, 0xd6, 0xe6, 0x50, 0x91, 0x73, 0x28, 0x8a, 0x32, 0x6a,
+	0xff, 0x05, 0xac, 0x7f, 0x42, 0x71, 0xca, 0xb8, 0xc8, 0xce, 0xee, 0xeb, 0xc1, 0xbb, 0x80, 0x66,
+	0x39, 0x7c, 0x66, 0x52, 0xdb, 0x45, 0x35, 0x27, 0x5d, 0x14, 0xef, 0x19, 0xac, 0x1e, 0xc6, 0xc8,
+	0x04, 0x7e, 0x4d, 0x4a, 0xde, 0x3f, 0xd4, 0x44, 0xbe, 0x62, 0xf0, 0xcc, 0xf2, 0x3d, 0x07, 0x92,
+	0x0f, 0x58, 0xb0, 0xac, 0x4a, 0x13, 0xe6, 0x25, 0x70, 0x7a, 0x7f, 0x6a, 0x54, 0xad, 0xbc, 0xbf,
+	0x36, 0xac, 0x16, 0xc2, 0x67, 0x6e, 0xfb, 0x0b, 0x34, 0xfc, 0x70, 0xc0, 0x87, 0x7d, 0xec, 0x75,
+	0xf1, 0x26, 0xd3, 0x63, 0x47, 0x06, 0x1a, 0x10, 0x3b, 0x87, 0x5a, 0x70, 0xfa, 0x68, 0x0b, 0xf9,
+	0x09, 0x5e, 0x14, 0x87, 0xbd, 0xa1, 0xaf, 0xf0, 0xec, 0x29, 0x78, 0xe7, 0x5a, 0xb0, 0xc2, 0xd3,
+	0xf3, 0xc9, 0x31, 0x00, 0x17, 0x61, 0xac, 0xd0, 0x52, 0xfb, 0x68, 0x4f, 0x44, 0xeb, 0xe6, 0xa1,
+	0x29, 0x96, 0x96, 0xeb, 0xbe, 0x87, 0xc7, 0x63, 0xe4, 0xa7, 0xd9, 0x4b, 0x55, 0xb3, 0x97, 0x04,
+	0x60, 0x8c, 0xed, 0x83, 0x00, 0xde, 0xc1, 0x72, 0x89, 0xe0, 0x43, 0xd2, 0xbd, 0xdf, 0x36, 0x2c,
+	0xa7, 0x66, 0x30, 0xba, 0x10, 0x27, 0x46, 0xf9, 0xb6, 0xe5, 0x80, 0x4a, 0xb1, 0x53, 0xa5, 0x3b,
+	0x31, 0x4a, 0x67, 0xc6, 0x9a, 0x26, 0xdb, 0x47, 0x83, 0x6c, 0x4f, 0x8d, 0x48, 0xff, 0xb5, 0x64,
+	0xaf, 0x61, 0x65, 0xd4, 0xef, 0xac, 0x6f, 0x72, 0xf7, 0x97, 0x0d, 0x4b, 0x07, 0x71, 0x78, 0x85,
+	0x71, 0x17, 0xe3, 0xdb, 0xc0, 0x47, 0x72, 0x08, 0x0d, 0xfd, 0x67, 0x80, 0x38, 0xda, 0x28, 0x0b,
+	0xe6, 0xee, 0x3e, 0x31, 0x9c, 0xa8, 0xc2, 0x9f, 0xe1, 0x51, 0xd1, 0x1d, 0x89, 0x2b, 0x83, 0x8d,
+	0x0e, 0xeb, 0x6e, 0x1a, 0xcf, 0x14, 0xd4, 0x01, 0xd4, 0x35, 0x5f, 0x53, 0x74, 0x0c, 0xb6, 0xa8,
+	0xe8, 0x18, 0x3d, 0xf0, 0x14, 0x96, 0x4b, 0x3f, 0x21, 0x64, 0xb3, 0xf8, 0xb0, 0x8b, 0x9d, 0x6d,
+	0x99, 0x0f, 0x15, 0xda, 0x1e, 0x2c, 0x66, 0x93, 0x26, 0x6b, 0xa6, 0x8b, 0xe6, 0xae, 0x97, 0x76,
+	0x55, 0xe2, 0x07, 0xa8, 0x6b, 0x4e, 0x42, 0x36, 0xc6, 0xbd, 0x25, 0x4d, 0x77, 0x26, 0x99, 0xce,
+	0xc5, 0xbc, 0xfc, 0xf7, 0xf4, 0xea, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x4f, 0x0d, 0x37, 0x31,
+	0x4a, 0x09, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -602,10 +808,13 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type BrokerServiceClient interface {
-	ProduceBatch(ctx context.Context, in *MessagesBatchRequest, opts ...grpc.CallOption) (*MessagesBatchResponse, error)
+	SendMessages(ctx context.Context, in *SendMessagesRequest, opts ...grpc.CallOption) (*SendMessagesResponse, error)
 	GetLastMessage(ctx context.Context, in *GetLastMessageRequest, opts ...grpc.CallOption) (*GetLastMessageResponse, error)
-	GetNextMessage(ctx context.Context, in *GetNextMessageRequest, opts ...grpc.CallOption) (*GetNextMessageResponse, error)
+	// rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
 	CreateTopic(ctx context.Context, in *CreateTopicsRequest, opts ...grpc.CallOption) (*CreateTopicsResponse, error)
+	RecieveMessages(ctx context.Context, in *RecieveMessagesRequest, opts ...grpc.CallOption) (*RecieveMessagesResponse, error)
+	SendMeta(ctx context.Context, in *SendMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error)
+	RecieveMeta(ctx context.Context, in *RecieveMetaRequest, opts ...grpc.CallOption) (*RecieveMetaResponse, error)
 }
 
 type brokerServiceClient struct {
@@ -616,9 +825,9 @@ func NewBrokerServiceClient(cc *grpc.ClientConn) BrokerServiceClient {
 	return &brokerServiceClient{cc}
 }
 
-func (c *brokerServiceClient) ProduceBatch(ctx context.Context, in *MessagesBatchRequest, opts ...grpc.CallOption) (*MessagesBatchResponse, error) {
-	out := new(MessagesBatchResponse)
-	err := c.cc.Invoke(ctx, "/api.BrokerService/ProduceBatch", in, out, opts...)
+func (c *brokerServiceClient) SendMessages(ctx context.Context, in *SendMessagesRequest, opts ...grpc.CallOption) (*SendMessagesResponse, error) {
+	out := new(SendMessagesResponse)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/SendMessages", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -634,15 +843,6 @@ func (c *brokerServiceClient) GetLastMessage(ctx context.Context, in *GetLastMes
 	return out, nil
 }
 
-func (c *brokerServiceClient) GetNextMessage(ctx context.Context, in *GetNextMessageRequest, opts ...grpc.CallOption) (*GetNextMessageResponse, error) {
-	out := new(GetNextMessageResponse)
-	err := c.cc.Invoke(ctx, "/api.BrokerService/GetNextMessage", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *brokerServiceClient) CreateTopic(ctx context.Context, in *CreateTopicsRequest, opts ...grpc.CallOption) (*CreateTopicsResponse, error) {
 	out := new(CreateTopicsResponse)
 	err := c.cc.Invoke(ctx, "/api.BrokerService/CreateTopic", in, out, opts...)
@@ -652,49 +852,85 @@ func (c *brokerServiceClient) CreateTopic(ctx context.Context, in *CreateTopicsR
 	return out, nil
 }
 
+func (c *brokerServiceClient) RecieveMessages(ctx context.Context, in *RecieveMessagesRequest, opts ...grpc.CallOption) (*RecieveMessagesResponse, error) {
+	out := new(RecieveMessagesResponse)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/RecieveMessages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerServiceClient) SendMeta(ctx context.Context, in *SendMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error) {
+	out := new(SendMetaResponse)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/SendMeta", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerServiceClient) RecieveMeta(ctx context.Context, in *RecieveMetaRequest, opts ...grpc.CallOption) (*RecieveMetaResponse, error) {
+	out := new(RecieveMetaResponse)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/RecieveMeta", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BrokerServiceServer is the server API for BrokerService service.
 type BrokerServiceServer interface {
-	ProduceBatch(context.Context, *MessagesBatchRequest) (*MessagesBatchResponse, error)
+	SendMessages(context.Context, *SendMessagesRequest) (*SendMessagesResponse, error)
 	GetLastMessage(context.Context, *GetLastMessageRequest) (*GetLastMessageResponse, error)
-	GetNextMessage(context.Context, *GetNextMessageRequest) (*GetNextMessageResponse, error)
+	// rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
 	CreateTopic(context.Context, *CreateTopicsRequest) (*CreateTopicsResponse, error)
+	RecieveMessages(context.Context, *RecieveMessagesRequest) (*RecieveMessagesResponse, error)
+	SendMeta(context.Context, *SendMetaRequest) (*SendMetaResponse, error)
+	RecieveMeta(context.Context, *RecieveMetaRequest) (*RecieveMetaResponse, error)
 }
 
 // UnimplementedBrokerServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedBrokerServiceServer struct {
 }
 
-func (*UnimplementedBrokerServiceServer) ProduceBatch(ctx context.Context, req *MessagesBatchRequest) (*MessagesBatchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProduceBatch not implemented")
+func (*UnimplementedBrokerServiceServer) SendMessages(ctx context.Context, req *SendMessagesRequest) (*SendMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessages not implemented")
 }
 func (*UnimplementedBrokerServiceServer) GetLastMessage(ctx context.Context, req *GetLastMessageRequest) (*GetLastMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLastMessage not implemented")
 }
-func (*UnimplementedBrokerServiceServer) GetNextMessage(ctx context.Context, req *GetNextMessageRequest) (*GetNextMessageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNextMessage not implemented")
-}
 func (*UnimplementedBrokerServiceServer) CreateTopic(ctx context.Context, req *CreateTopicsRequest) (*CreateTopicsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateTopic not implemented")
+}
+func (*UnimplementedBrokerServiceServer) RecieveMessages(ctx context.Context, req *RecieveMessagesRequest) (*RecieveMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RecieveMessages not implemented")
+}
+func (*UnimplementedBrokerServiceServer) SendMeta(ctx context.Context, req *SendMetaRequest) (*SendMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMeta not implemented")
+}
+func (*UnimplementedBrokerServiceServer) RecieveMeta(ctx context.Context, req *RecieveMetaRequest) (*RecieveMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RecieveMeta not implemented")
 }
 
 func RegisterBrokerServiceServer(s *grpc.Server, srv BrokerServiceServer) {
 	s.RegisterService(&_BrokerService_serviceDesc, srv)
 }
 
-func _BrokerService_ProduceBatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MessagesBatchRequest)
+func _BrokerService_SendMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMessagesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BrokerServiceServer).ProduceBatch(ctx, in)
+		return srv.(BrokerServiceServer).SendMessages(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.BrokerService/ProduceBatch",
+		FullMethod: "/api.BrokerService/SendMessages",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BrokerServiceServer).ProduceBatch(ctx, req.(*MessagesBatchRequest))
+		return srv.(BrokerServiceServer).SendMessages(ctx, req.(*SendMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -717,24 +953,6 @@ func _BrokerService_GetLastMessage_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BrokerService_GetNextMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNextMessageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BrokerServiceServer).GetNextMessage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.BrokerService/GetNextMessage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BrokerServiceServer).GetNextMessage(ctx, req.(*GetNextMessageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BrokerService_CreateTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateTopicsRequest)
 	if err := dec(in); err != nil {
@@ -753,25 +971,87 @@ func _BrokerService_CreateTopic_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BrokerService_RecieveMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecieveMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).RecieveMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.BrokerService/RecieveMessages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).RecieveMessages(ctx, req.(*RecieveMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BrokerService_SendMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).SendMeta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.BrokerService/SendMeta",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).SendMeta(ctx, req.(*SendMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BrokerService_RecieveMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecieveMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).RecieveMeta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.BrokerService/RecieveMeta",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).RecieveMeta(ctx, req.(*RecieveMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _BrokerService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.BrokerService",
 	HandlerType: (*BrokerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ProduceBatch",
-			Handler:    _BrokerService_ProduceBatch_Handler,
+			MethodName: "SendMessages",
+			Handler:    _BrokerService_SendMessages_Handler,
 		},
 		{
 			MethodName: "GetLastMessage",
 			Handler:    _BrokerService_GetLastMessage_Handler,
 		},
 		{
-			MethodName: "GetNextMessage",
-			Handler:    _BrokerService_GetNextMessage_Handler,
-		},
-		{
 			MethodName: "CreateTopic",
 			Handler:    _BrokerService_CreateTopic_Handler,
+		},
+		{
+			MethodName: "RecieveMessages",
+			Handler:    _BrokerService_RecieveMessages_Handler,
+		},
+		{
+			MethodName: "SendMeta",
+			Handler:    _BrokerService_SendMeta_Handler,
+		},
+		{
+			MethodName: "RecieveMeta",
+			Handler:    _BrokerService_RecieveMeta_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
