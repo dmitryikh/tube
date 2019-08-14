@@ -20,11 +20,11 @@ func main() {
 		panic(err)
 	}
 	config.LogConfig()
-	topicManager, err := broker.NewTopicManager(config)
+	b, err := broker.NewBroker(*config)
 	if err != nil {
 		panic(err)
 	}
-	service := broker.NewBrokerService(topicManager)
+	service := broker.NewBrokerService(b)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Port))
 	if err != nil {
@@ -46,7 +46,7 @@ func main() {
 		log.Errorf("Grpc Server error: %s", err)
 	}
 
-	err = topicManager.Shutdown()
+	err = b.Shutdown()
 	if err != nil {
 		log.Errorf("TopicsManager error: %s", err)
 	}

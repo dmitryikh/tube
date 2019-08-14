@@ -1,19 +1,21 @@
 package broker
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 )
 
 func TestConsumersRegistrySerialization(t *testing.T) {
 	registry := ConsumersRegistry{}
-	data, err := registry.Serialize()
+	buffer := new(bytes.Buffer)
+	err := registry.Serialize(buffer)
 	if err != nil {
 		t.Fatalf("Serialization error: %s", err)
 	}
 
 	newRegistry := ConsumersRegistry{}
-	err = newRegistry.Deserialize(data)
+	err = newRegistry.Deserialize(buffer)
 	if err != nil {
 		t.Fatalf("Serialization error: %s", err)
 	}

@@ -1,7 +1,7 @@
 package tube
 
 const (
-	UnsetSeq = 0
+	UnsetSeq uint64 = 0
 )
 
 // Key - topic name
@@ -19,6 +19,8 @@ func (s *SeqSet) UpdateMin(seqs SeqSet) {
 				seqOrig = seq
 			}
 			(*s)[topicName] = MinUint64(seq, seqOrig)
+		} else {
+			(*s)[topicName] = seq
 		}
 	}
 }
@@ -30,6 +32,21 @@ func (s *SeqSet) UpdateMax(seqs SeqSet) {
 				seqOrig = seq
 			}
 			(*s)[topicName] = MaxUint64(seq, seqOrig)
+		} else {
+			(*s)[topicName] = seq
 		}
 	}
+}
+
+func (s *SeqSet) Equals(seqs SeqSet) bool {
+	for topicName, seq := range seqs {
+		if seqOrig, isFound := (*s)[topicName]; isFound {
+			if seqOrig != seq {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
 }

@@ -10,30 +10,52 @@ type ErrorCode uint64
 
 const (
 	// CodeOk           ErrorCode = 0
-	CodeTopicExists  ErrorCode = 1
-	CodeUnknownError ErrorCode = 1000
+	CodeTopicExists    ErrorCode = 1
+	CodeTopicNotExists ErrorCode = 2
+	CodeTopicEmpty     ErrorCode = 3
+
+	CodeConsumerExists    ErrorCode = 100
+	CodeConsumerNotExists ErrorCode = 101
+	CodeUnknownError      ErrorCode = 1000
 )
-
-func NewTopicExistsError(topicName string) *Error {
-	return &Error{
-		Code:    uint64(CodeTopicExists),
-		Message: fmt.Sprintf("Topic \"%s\" already exists", topicName),
-	}
-}
-
-func NewUnknownError(err error) *Error {
-	return &Error{
-		Code:    uint64(CodeUnknownError),
-		Message: err.Error(),
-	}
-}
 
 func ProtoErrorFromError(err error) *Error {
 	switch e := err.(type) {
 	case tube.TopicExistsError:
-		return NewTopicExistsError(e.TopicName)
+		return &Error{
+			Code: uint64(CodeTopicExists),
+			Data: map[string]string{
+				"topic": e.TopicName,
+			},
+		}
+	case tube.TopicNotExistError:
+		return &Error{
+			Code: uint64(CodeTopicNotExists),
+			Data: map[string]string{
+				"topic": e.TopicName,
+			},
+		}
+	case tube.TopicEmptyError:
+		return &Error{
+			Code: uint64(CodeTopicEmpty),
+			Data: map[string]string{
+				"topic": e.TopicName,
+			},
+		}
+	case tube.ConsumerExistsError:
+		return &Error{
+			Code: uint64(CodeConsumerExists),
+			Data: map[string]string{
+				"consumer": e.ConsumerID,
+			},
+		}
 	default:
-		return NewUnknownError(e)
+		return &Error{
+			Code: uint64(CodeUnknownError),
+			Data: map[string]string{
+				"message": e.Error(),
+			},
+		}
 	}
 }
 
@@ -43,9 +65,14 @@ func ErrorFromProtoError(e *Error) error {
 	// case CodeOk:
 	// 	return nil
 	case CodeTopicExists:
-		// TODO: topicName???
-		return tube.NewTopicExistsError("")
+		return tube.NewTopicExistsError(e.Data["topic"])
+	case CodeTopicNotExists:
+		return tube.NewTopicNotExistError(e.Data["topic"])
+	case CodeTopicEmpty:
+		return tube.NewTopicEmptyError(e.Data["topic"])
+	case CodeConsumerExists:
+		return tube.NewConsumerExistsError(e.Data["consumer"])
 	default:
-		return fmt.Errorf("%s", e.Message)
+		return fmt.Errorf("%s", e.Data["message"])
 	}
 }

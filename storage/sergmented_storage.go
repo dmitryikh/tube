@@ -53,18 +53,17 @@ func (s *SegmentedTopicStorage) ActiveSegment() *Segment {
 }
 
 type SegmentedStorage struct {
-	Topics           map[string]*SegmentedTopicStorage
-	config           *SegmentedStorageConfig
-	houseKeepingDone chan struct{}
-	lock             sync.RWMutex
+	Topics             map[string]*SegmentedTopicStorage
+	config             *SegmentedStorageConfig
+	houseKeepingThread *tube.PeriodicThread
+	lock               sync.RWMutex
 }
 
 func NewSegmentedStorage(config *SegmentedStorageConfig) (*SegmentedStorage, error) {
 	log.Info("Creating SegmentedStorage..")
 	segmentedStorage := &SegmentedStorage{
-		Topics:           make(map[string]*SegmentedTopicStorage),
-		config:           config,
-		houseKeepingDone: make(chan struct{}),
+		Topics: make(map[string]*SegmentedTopicStorage),
+		config: config,
 	}
 
 	topicsDir := segmentedStorage.config.TopicsDir
@@ -95,8 +94,16 @@ func NewSegmentedStorage(config *SegmentedStorageConfig) (*SegmentedStorage, err
 		// 3. Крайний загружаем как ActiveSegment, а предыдущие как Segment (только header)
 	}
 
-	go housekeeping(segmentedStorage)
+	if segmentedStorage.config.HousekeepingPeriodSec < 1 {
+		segmentedStorage.config.HousekeepingPeriodSec = defaultHousekeepingPeriodSec
+	}
+	log.WithField("period", segmentedStorage.config.HousekeepingPeriodSec).
+		Info("Launch SegmentedStorage thread")
 
+	segmentedStorage.houseKeepingThread = tube.NewPeriodicThread(
+		func() { housekeepingInternal(segmentedStorage) },
+		segmentedStorage.config.HousekeepingPeriodSec,
+	)
 	log.Info("Creating SegmentedStorage.. Done")
 	return segmentedStorage, nil
 }
@@ -214,13 +221,23 @@ func (s *SegmentedStorage) GetLastMessage(topicName string) (*message.Message, e
 	if err != nil {
 		return nil, err
 	}
-	return iter.Next()
+	msg, err := iter.Next()
+	if err != nil {
+		if _, ok := err.(StopIterationError); ok {
+			return nil, tube.NewTopicEmptyError(topicName)
+		}
+		return nil, err
+	}
+	return msg, err
 }
 
 func (s *SegmentedStorage) Shutdown() error {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	var firstError error
+	s.houseKeepingThread.Stop()
+	s.houseKeepingThread.Join()
+	log.Info("SegmentedStorage thread stopped")
 	for topic, topicStorage := range s.Topics {
 		activeSegment := topicStorage.ActiveSegment()
 		segmentPath := path.Join(s.config.TopicsDir, topic, segmentFilename(activeSegment.Header))
@@ -241,21 +258,6 @@ func (s *SegmentedStorage) Shutdown() error {
 		}
 	}
 	return firstError
-}
-
-func (s *SegmentedStorage) tryCreateNextActiveSegment(topicName string) error {
-	// TODO
-	return nil
-}
-
-func (s *SegmentedStorage) tryDeleteOldSegments(topicName string) error {
-	// TODO
-	return nil
-}
-
-func (s *SegmentedStorage) tryUnloadMessages(topicName string) error {
-	// TODO
-	return nil
 }
 
 func (s *SegmentedStorage) OpenTopic(topicName string) error {
@@ -345,23 +347,6 @@ func listSegments(topicPath string) ([]*Segment, error) {
 	return segments, nil
 }
 
-func housekeeping(s *SegmentedStorage) {
-	if s.config.HousekeepingPeriodSec < 1 {
-		s.config.HousekeepingPeriodSec = defaultHousekeepingPeriodSec
-	}
-	log.WithField("period", s.config.HousekeepingPeriodSec).
-		Info("Launch housekeeping thread")
-	ticker := time.NewTicker(time.Duration(s.config.HousekeepingPeriodSec) * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			housekeepingInternal(s)
-		case <-s.houseKeepingDone:
-			break
-		}
-	}
-}
-
 func housekeepingInternal(s *SegmentedStorage) {
 	// 1. Delete old segments (based on consumedSeq & retention)
 	// 2. Flush active segment to the disk
@@ -372,7 +357,8 @@ func housekeepingInternal(s *SegmentedStorage) {
 	segmentsToDelete := make(map[string][]int)
 	for topicName, topic := range s.Topics {
 		if s.config.FlushingToFilePeriodSec != 0 &&
-			(topic.lastTimeFlushed.Unix()+int64(s.config.FlushingToFilePeriodSec) < now) {
+			(topic.lastTimeFlushed.Unix()+int64(s.config.FlushingToFilePeriodSec) < now) &&
+			topic.ActiveSegment().Header.MessagesCount > 0 {
 			// time to flush
 			activeSegment := topic.ActiveSegment()
 			newSegmentFilename := segmentFilename(activeSegment.Header)

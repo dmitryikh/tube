@@ -3,74 +3,28 @@ package client
 import (
 	"context"
 	"fmt"
-	"reflect"
 
-	"github.com/dmitryikh/tube"
 	"github.com/dmitryikh/tube/api"
 	"github.com/dmitryikh/tube/message"
 	"google.golang.org/grpc"
 )
 
-// type ProducerStatus int
-//
-// const (
-// 	ProducerOnline  ProducerStatus = 0
-// 	ProducerOffline ProducerStatus = 1
-// )
-
 type Producer struct {
-	config ProducerConfig
-	// Status         ProducerStatus
-	producedSeqMap map[string]uint64
-	consumedSeqMap map[string]uint64
-	storedSeqMap   map[string]uint64
-	api            api.BrokerServiceClient
-	connection     *grpc.ClientConn
+	config     ProducerConfig
+	topics     []string
+	api        api.BrokerServiceClient
+	connection *grpc.ClientConn
 }
 
 type ProducerConfig struct {
-	URI     string
-	DataDir string
+	URI string
 }
 
-func NewProducer(config ProducerConfig, topics []string) (*Producer, error) {
-	p := &Producer{
+func NewProducer(config ProducerConfig, topics []string) *Producer {
+	return &Producer{
 		config: config,
-		// Status:         ProducerOffline,
-		producedSeqMap: make(map[string]uint64),
-		consumedSeqMap: make(map[string]uint64),
-		storedSeqMap:   make(map[string]uint64),
+		topics: topics,
 	}
-	for _, topic := range topics {
-		p.producedSeqMap[topic] = 0
-		p.consumedSeqMap[topic] = 0
-		p.storedSeqMap[topic] = 0
-	}
-
-	err := p.Connect()
-	if err != nil {
-		return nil, err
-	}
-	for _, topic := range topics {
-		err := p.CreateTopic(topic)
-		if err != nil {
-			if _, isTopicExistsError := err.(tube.TopicExistsError); isTopicExistsError {
-				continue
-			}
-			p.Disconnect()
-			return nil, err
-		}
-	}
-	err = p.RecieveMeta()
-	if err != nil {
-		p.Disconnect()
-		return nil, err
-	}
-	// set produced seq as consumed seq
-	for topicName, seq := range p.consumedSeqMap {
-		p.producedSeqMap[topicName] = seq
-	}
-	return p, nil
 }
 
 func (p *Producer) CreateTopic(topic string) error {
@@ -92,16 +46,8 @@ func (p *Producer) SendMessages(topic string, messages []*message.Message) error
 	ctx := context.Background()
 	apiMessages := make([]*api.MessageWithRoute, 0, len(messages))
 
-	producedSeq, isFound := p.producedSeqMap[topic]
-	if !isFound {
-		return fmt.Errorf("producer isn't subscribed to topic \"%s\"", topic)
-	}
 	request := &api.SendMessagesRequest{}
 	for _, msg := range messages {
-		if msg.Seq <= producedSeq {
-			return fmt.Errorf("message with seq = %d (topic = \"%s\") already produced", msg.Seq, topic)
-		}
-		producedSeq = msg.Seq
 		apiMsg := api.ProtoMessageFromMessage(msg)
 		apiMessages = append(apiMessages, &api.MessageWithRoute{
 			Message: apiMsg,
@@ -117,7 +63,6 @@ func (p *Producer) SendMessages(topic string, messages []*message.Message) error
 	if err := checkResponseError(response); err != nil {
 		return fmt.Errorf("SendMessages failed: %s", err)
 	}
-	p.producedSeqMap[topic] = producedSeq
 	return nil
 }
 
@@ -131,45 +76,34 @@ func (p *Producer) GetLastMessage(topic string) (*message.Message, error) {
 		return nil, err
 	}
 	if err := checkResponseError(response); err != nil {
-		return nil, fmt.Errorf("GetLastMessage failed: %s", err)
+		return nil, api.ErrorFromProtoError(response.Error)
 	}
 	return api.MessageFromProtoMessage(response.Message), nil
 }
 
-func (p *Producer) RecieveMeta() error {
+func (p *Producer) RecieveMeta() (*api.Meta, error) {
 	ctx := context.Background()
-	topics := make([]string, 0, len(p.producedSeqMap))
-	for topicName, _ := range p.producedSeqMap {
-		topics = append(topics, topicName)
-	}
 	request := &api.RecieveMetaRequest{
-		Topics: topics,
+		Topics: p.topics,
 	}
 
 	response, err := p.api.RecieveMeta(ctx, request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := checkResponseError(response); err != nil {
-		return fmt.Errorf("GetMeta failed: %s", err)
+		return nil, fmt.Errorf("SendMeta failed: %s", err)
 	}
-	p.consumedSeqMap = response.ConsumedSeqs
-	p.storedSeqMap = response.StoredSeqs
-	return nil
+	return api.MetaFromRecieveMetaResponse(response), nil
 }
 
 func (p *Producer) SendMeta(producedSeqs map[string]uint64) error {
 	ctx := context.Background()
-	producedSeqMap := make(map[string]uint64)
-	for topicName, seq := range producedSeqs {
-		producedSeqMap[topicName] = seq
-	}
-	p.producedSeqMap = producedSeqMap
-	request := &api.SendMetaRequest{
-		ProducedSeqs: producedSeqMap,
+	request := &api.SendProducerMetaRequest{
+		ProducedSeqs: producedSeqs,
 	}
 
-	response, err := p.api.SendMeta(ctx, request)
+	response, err := p.api.SendProducerMeta(ctx, request)
 	if err != nil {
 		return err
 	}
@@ -202,37 +136,4 @@ func (p *Producer) Disconnect() error {
 	p.connection = nil
 	p.api = nil
 	return connection.Close()
-}
-
-func (p *Producer) ProducedSeq(topic string) uint64 {
-	if seq, isFound := p.producedSeqMap[topic]; isFound {
-		return seq
-	}
-	return 0
-}
-
-func (p *Producer) ConsumedSeq(topic string) uint64 {
-	if seq, isFound := p.consumedSeqMap[topic]; isFound {
-		return seq
-	}
-	return 0
-}
-
-func (p *Producer) StoredSeq(topic string) uint64 {
-	if seq, isFound := p.storedSeqMap[topic]; isFound {
-		return seq
-	}
-	return 0
-}
-
-func checkResponseError(response interface{}) error {
-	v := reflect.Indirect(reflect.ValueOf(response))
-	erro, isOk := v.FieldByName("Error").Interface().(*api.Error)
-	if !isOk {
-		return fmt.Errorf("bad error cast")
-	}
-	if erro != nil {
-		return fmt.Errorf("%s (code %d)", erro.Message, erro.Code)
-	}
-	return nil
 }

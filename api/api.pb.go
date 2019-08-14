@@ -135,11 +135,11 @@ func (m *MessageWithRoute) GetTopic() string {
 }
 
 type Error struct {
-	Code                 uint64   `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Message              string   `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Code                 uint64            `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Data                 map[string]string `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
 func (m *Error) Reset()         { *m = Error{} }
@@ -174,11 +174,11 @@ func (m *Error) GetCode() uint64 {
 	return 0
 }
 
-func (m *Error) GetMessage() string {
+func (m *Error) GetData() map[string]string {
 	if m != nil {
-		return m.Message
+		return m.Data
 	}
-	return ""
+	return nil
 }
 
 type SendMessagesRequest struct {
@@ -569,6 +569,7 @@ type RecieveMetaResponse struct {
 	ConsumedSeqs         map[string]uint64 `protobuf:"bytes,2,rep,name=consumedSeqs,proto3" json:"consumedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	ProducedSeqs         map[string]uint64 `protobuf:"bytes,3,rep,name=producedSeqs,proto3" json:"producedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	StoredSeqs           map[string]uint64 `protobuf:"bytes,4,rep,name=storedSeqs,proto3" json:"storedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	AvailableSeqs        map[string]uint64 `protobuf:"bytes,5,rep,name=availableSeqs,proto3" json:"availableSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -627,57 +628,95 @@ func (m *RecieveMetaResponse) GetStoredSeqs() map[string]uint64 {
 	return nil
 }
 
-type SendMetaRequest struct {
+func (m *RecieveMetaResponse) GetAvailableSeqs() map[string]uint64 {
+	if m != nil {
+		return m.AvailableSeqs
+	}
+	return nil
+}
+
+type SendConsumerMetaRequest struct {
+	ConsumerID           string            `protobuf:"bytes,1,opt,name=consumerID,proto3" json:"consumerID,omitempty"`
 	ConsumedSeqs         map[string]uint64 `protobuf:"bytes,2,rep,name=consumedSeqs,proto3" json:"consumedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	ProducedSeqs         map[string]uint64 `protobuf:"bytes,3,rep,name=producedSeqs,proto3" json:"producedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	StoredSeqs           map[string]uint64 `protobuf:"bytes,4,rep,name=storedSeqs,proto3" json:"storedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
 }
 
-func (m *SendMetaRequest) Reset()         { *m = SendMetaRequest{} }
-func (m *SendMetaRequest) String() string { return proto.CompactTextString(m) }
-func (*SendMetaRequest) ProtoMessage()    {}
-func (*SendMetaRequest) Descriptor() ([]byte, []int) {
+func (m *SendConsumerMetaRequest) Reset()         { *m = SendConsumerMetaRequest{} }
+func (m *SendConsumerMetaRequest) String() string { return proto.CompactTextString(m) }
+func (*SendConsumerMetaRequest) ProtoMessage()    {}
+func (*SendConsumerMetaRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_00212fb1f9d3bf1c, []int{13}
 }
 
-func (m *SendMetaRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SendMetaRequest.Unmarshal(m, b)
+func (m *SendConsumerMetaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendConsumerMetaRequest.Unmarshal(m, b)
 }
-func (m *SendMetaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SendMetaRequest.Marshal(b, m, deterministic)
+func (m *SendConsumerMetaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendConsumerMetaRequest.Marshal(b, m, deterministic)
 }
-func (m *SendMetaRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SendMetaRequest.Merge(m, src)
+func (m *SendConsumerMetaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendConsumerMetaRequest.Merge(m, src)
 }
-func (m *SendMetaRequest) XXX_Size() int {
-	return xxx_messageInfo_SendMetaRequest.Size(m)
+func (m *SendConsumerMetaRequest) XXX_Size() int {
+	return xxx_messageInfo_SendConsumerMetaRequest.Size(m)
 }
-func (m *SendMetaRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_SendMetaRequest.DiscardUnknown(m)
+func (m *SendConsumerMetaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendConsumerMetaRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SendMetaRequest proto.InternalMessageInfo
+var xxx_messageInfo_SendConsumerMetaRequest proto.InternalMessageInfo
 
-func (m *SendMetaRequest) GetConsumedSeqs() map[string]uint64 {
+func (m *SendConsumerMetaRequest) GetConsumerID() string {
+	if m != nil {
+		return m.ConsumerID
+	}
+	return ""
+}
+
+func (m *SendConsumerMetaRequest) GetConsumedSeqs() map[string]uint64 {
 	if m != nil {
 		return m.ConsumedSeqs
 	}
 	return nil
 }
 
-func (m *SendMetaRequest) GetProducedSeqs() map[string]uint64 {
-	if m != nil {
-		return m.ProducedSeqs
-	}
-	return nil
+type SendProducerMetaRequest struct {
+	ProducedSeqs         map[string]uint64 `protobuf:"bytes,1,rep,name=producedSeqs,proto3" json:"producedSeqs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
-func (m *SendMetaRequest) GetStoredSeqs() map[string]uint64 {
+func (m *SendProducerMetaRequest) Reset()         { *m = SendProducerMetaRequest{} }
+func (m *SendProducerMetaRequest) String() string { return proto.CompactTextString(m) }
+func (*SendProducerMetaRequest) ProtoMessage()    {}
+func (*SendProducerMetaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{14}
+}
+
+func (m *SendProducerMetaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendProducerMetaRequest.Unmarshal(m, b)
+}
+func (m *SendProducerMetaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendProducerMetaRequest.Marshal(b, m, deterministic)
+}
+func (m *SendProducerMetaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendProducerMetaRequest.Merge(m, src)
+}
+func (m *SendProducerMetaRequest) XXX_Size() int {
+	return xxx_messageInfo_SendProducerMetaRequest.Size(m)
+}
+func (m *SendProducerMetaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendProducerMetaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SendProducerMetaRequest proto.InternalMessageInfo
+
+func (m *SendProducerMetaRequest) GetProducedSeqs() map[string]uint64 {
 	if m != nil {
-		return m.StoredSeqs
+		return m.ProducedSeqs
 	}
 	return nil
 }
@@ -693,7 +732,7 @@ func (m *SendMetaResponse) Reset()         { *m = SendMetaResponse{} }
 func (m *SendMetaResponse) String() string { return proto.CompactTextString(m) }
 func (*SendMetaResponse) ProtoMessage()    {}
 func (*SendMetaResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{14}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{15}
 }
 
 func (m *SendMetaResponse) XXX_Unmarshal(b []byte) error {
@@ -721,11 +760,106 @@ func (m *SendMetaResponse) GetError() *Error {
 	return nil
 }
 
+type CreateConsumerRequest struct {
+	ConsumerID           string   `protobuf:"bytes,1,opt,name=consumerID,proto3" json:"consumerID,omitempty"`
+	Topics               []string `protobuf:"bytes,2,rep,name=topics,proto3" json:"topics,omitempty"`
+	AttachStrategy       string   `protobuf:"bytes,3,opt,name=attachStrategy,proto3" json:"attachStrategy,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateConsumerRequest) Reset()         { *m = CreateConsumerRequest{} }
+func (m *CreateConsumerRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateConsumerRequest) ProtoMessage()    {}
+func (*CreateConsumerRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{16}
+}
+
+func (m *CreateConsumerRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateConsumerRequest.Unmarshal(m, b)
+}
+func (m *CreateConsumerRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateConsumerRequest.Marshal(b, m, deterministic)
+}
+func (m *CreateConsumerRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateConsumerRequest.Merge(m, src)
+}
+func (m *CreateConsumerRequest) XXX_Size() int {
+	return xxx_messageInfo_CreateConsumerRequest.Size(m)
+}
+func (m *CreateConsumerRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateConsumerRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateConsumerRequest proto.InternalMessageInfo
+
+func (m *CreateConsumerRequest) GetConsumerID() string {
+	if m != nil {
+		return m.ConsumerID
+	}
+	return ""
+}
+
+func (m *CreateConsumerRequest) GetTopics() []string {
+	if m != nil {
+		return m.Topics
+	}
+	return nil
+}
+
+func (m *CreateConsumerRequest) GetAttachStrategy() string {
+	if m != nil {
+		return m.AttachStrategy
+	}
+	return ""
+}
+
+type CreateConsumerResponse struct {
+	Error                *Error   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateConsumerResponse) Reset()         { *m = CreateConsumerResponse{} }
+func (m *CreateConsumerResponse) String() string { return proto.CompactTextString(m) }
+func (*CreateConsumerResponse) ProtoMessage()    {}
+func (*CreateConsumerResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{17}
+}
+
+func (m *CreateConsumerResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateConsumerResponse.Unmarshal(m, b)
+}
+func (m *CreateConsumerResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateConsumerResponse.Marshal(b, m, deterministic)
+}
+func (m *CreateConsumerResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateConsumerResponse.Merge(m, src)
+}
+func (m *CreateConsumerResponse) XXX_Size() int {
+	return xxx_messageInfo_CreateConsumerResponse.Size(m)
+}
+func (m *CreateConsumerResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateConsumerResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateConsumerResponse proto.InternalMessageInfo
+
+func (m *CreateConsumerResponse) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Message)(nil), "api.Message")
 	proto.RegisterMapType((map[string][]byte)(nil), "api.Message.MetaEntry")
 	proto.RegisterType((*MessageWithRoute)(nil), "api.MessageWithRoute")
 	proto.RegisterType((*Error)(nil), "api.Error")
+	proto.RegisterMapType((map[string]string)(nil), "api.Error.DataEntry")
 	proto.RegisterType((*SendMessagesRequest)(nil), "api.SendMessagesRequest")
 	proto.RegisterType((*SendMessagesResponse)(nil), "api.SendMessagesResponse")
 	proto.RegisterType((*RecieveMessagesRequest)(nil), "api.RecieveMessagesRequest")
@@ -736,64 +870,76 @@ func init() {
 	proto.RegisterType((*CreateTopicsResponse)(nil), "api.CreateTopicsResponse")
 	proto.RegisterType((*RecieveMetaRequest)(nil), "api.RecieveMetaRequest")
 	proto.RegisterType((*RecieveMetaResponse)(nil), "api.RecieveMetaResponse")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.AvailableSeqsEntry")
 	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.ConsumedSeqsEntry")
 	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.ProducedSeqsEntry")
 	proto.RegisterMapType((map[string]uint64)(nil), "api.RecieveMetaResponse.StoredSeqsEntry")
-	proto.RegisterType((*SendMetaRequest)(nil), "api.SendMetaRequest")
-	proto.RegisterMapType((map[string]uint64)(nil), "api.SendMetaRequest.ConsumedSeqsEntry")
-	proto.RegisterMapType((map[string]uint64)(nil), "api.SendMetaRequest.ProducedSeqsEntry")
-	proto.RegisterMapType((map[string]uint64)(nil), "api.SendMetaRequest.StoredSeqsEntry")
+	proto.RegisterType((*SendConsumerMetaRequest)(nil), "api.SendConsumerMetaRequest")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.SendConsumerMetaRequest.ConsumedSeqsEntry")
+	proto.RegisterType((*SendProducerMetaRequest)(nil), "api.SendProducerMetaRequest")
+	proto.RegisterMapType((map[string]uint64)(nil), "api.SendProducerMetaRequest.ProducedSeqsEntry")
 	proto.RegisterType((*SendMetaResponse)(nil), "api.SendMetaResponse")
+	proto.RegisterType((*CreateConsumerRequest)(nil), "api.CreateConsumerRequest")
+	proto.RegisterType((*CreateConsumerResponse)(nil), "api.CreateConsumerResponse")
 }
 
 func init() { proto.RegisterFile("api.proto", fileDescriptor_00212fb1f9d3bf1c) }
 
 var fileDescriptor_00212fb1f9d3bf1c = []byte{
-	// 692 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x56, 0x5d, 0x4f, 0xdb, 0x30,
-	0x14, 0x55, 0x9a, 0xf2, 0xd1, 0xdb, 0x32, 0x98, 0x81, 0x92, 0x05, 0x1e, 0xaa, 0x68, 0x42, 0x15,
-	0xdb, 0x2a, 0x8d, 0x6d, 0x02, 0x4d, 0x9a, 0x36, 0xc1, 0xd0, 0x18, 0x82, 0x09, 0xb9, 0x93, 0xf6,
-	0xb2, 0x17, 0x93, 0x5e, 0x8d, 0x08, 0xda, 0x84, 0xd8, 0x45, 0xe3, 0x3f, 0xed, 0x61, 0x8f, 0xfb,
-	0x3d, 0xfb, 0x25, 0x53, 0x1c, 0x27, 0x75, 0x52, 0x97, 0x96, 0xd7, 0xbd, 0xc5, 0xf6, 0xbd, 0xe7,
-	0x9e, 0x7b, 0x8f, 0x7d, 0x5a, 0xa8, 0xb1, 0x28, 0xe8, 0x44, 0x71, 0x28, 0x42, 0x62, 0xb3, 0x28,
-	0xf0, 0xfe, 0x58, 0xb0, 0x70, 0x86, 0x9c, 0xb3, 0x1f, 0x48, 0x56, 0xc0, 0xe6, 0x78, 0xe3, 0x58,
-	0x2d, 0xab, 0x5d, 0xa5, 0xc9, 0x27, 0xd9, 0x82, 0x9a, 0x08, 0xfa, 0xc8, 0x05, 0xeb, 0x47, 0x4e,
-	0x45, 0xee, 0x8f, 0x36, 0x88, 0x03, 0x0b, 0x11, 0xbb, 0xbb, 0x0e, 0x59, 0xcf, 0xb1, 0x5b, 0x56,
-	0xbb, 0x41, 0xb3, 0x25, 0xd9, 0x81, 0x6a, 0x1f, 0x05, 0x73, 0xaa, 0x2d, 0xbb, 0x5d, 0xdf, 0x6d,
-	0x76, 0x92, 0xa2, 0xaa, 0x4a, 0xe7, 0x0c, 0x05, 0x3b, 0x1a, 0x88, 0xf8, 0x8e, 0xca, 0x18, 0x77,
-	0x0f, 0x6a, 0xf9, 0x56, 0x42, 0xe1, 0x0a, 0xef, 0x24, 0x85, 0x1a, 0x4d, 0x3e, 0xc9, 0x1a, 0xcc,
-	0xdd, 0xb2, 0xeb, 0x21, 0xca, 0xf2, 0x0d, 0x9a, 0x2e, 0xde, 0x56, 0xf6, 0x2d, 0xef, 0x1c, 0x56,
-	0x14, 0xe6, 0xb7, 0x40, 0x5c, 0xd2, 0x70, 0x28, 0x90, 0x6c, 0xc3, 0x42, 0x3f, 0xdd, 0x93, 0x18,
-	0xf5, 0xdd, 0x86, 0x5e, 0x9b, 0x66, 0x87, 0x09, 0xaa, 0x08, 0xa3, 0xc0, 0x97, 0xa8, 0x35, 0x9a,
-	0x2e, 0xbc, 0x37, 0x30, 0x77, 0x14, 0xc7, 0x61, 0x4c, 0x08, 0x54, 0xfd, 0xb0, 0x87, 0x6a, 0x14,
-	0xf2, 0x3b, 0xe9, 0x36, 0x83, 0x4e, 0x93, 0xb2, 0xa5, 0x77, 0x0c, 0xab, 0x5d, 0x1c, 0xf4, 0x54,
-	0x11, 0x4e, 0xf1, 0x66, 0x88, 0x5c, 0x90, 0x97, 0xb0, 0xa8, 0x22, 0xb8, 0x63, 0xc9, 0x41, 0xac,
-	0xeb, 0x64, 0x72, 0xd2, 0x34, 0x0f, 0xf3, 0xf6, 0x61, 0xad, 0x88, 0xc4, 0xa3, 0x70, 0xc0, 0x91,
-	0xb4, 0x60, 0x0e, 0x13, 0x62, 0xaa, 0x29, 0x90, 0x38, 0x92, 0x2a, 0x4d, 0x0f, 0xbc, 0xef, 0xd0,
-	0xa4, 0xe8, 0x07, 0x78, 0x8b, 0x65, 0x1a, 0x79, 0xab, 0x96, 0xd6, 0x6a, 0xa6, 0x75, 0x65, 0xa4,
-	0xb5, 0x0b, 0x8b, 0x7d, 0xf6, 0xf3, 0x80, 0x09, 0xff, 0x52, 0xca, 0xb9, 0x44, 0xf3, 0xb5, 0x87,
-	0xb0, 0x31, 0x86, 0x3e, 0x2b, 0x35, 0xd2, 0xd6, 0xe6, 0x50, 0x91, 0x73, 0x28, 0x8a, 0x32, 0x6a,
-	0xff, 0x05, 0xac, 0x7f, 0x42, 0x71, 0xca, 0xb8, 0xc8, 0xce, 0xee, 0xeb, 0xc1, 0xbb, 0x80, 0x66,
-	0x39, 0x7c, 0x66, 0x52, 0xdb, 0x45, 0x35, 0x27, 0x5d, 0x14, 0xef, 0x19, 0xac, 0x1e, 0xc6, 0xc8,
-	0x04, 0x7e, 0x4d, 0x4a, 0xde, 0x3f, 0xd4, 0x44, 0xbe, 0x62, 0xf0, 0xcc, 0xf2, 0x3d, 0x07, 0x92,
-	0x0f, 0x58, 0xb0, 0xac, 0x4a, 0x13, 0xe6, 0x25, 0x70, 0x7a, 0x7f, 0x6a, 0x54, 0xad, 0xbc, 0xbf,
-	0x36, 0xac, 0x16, 0xc2, 0x67, 0x6e, 0xfb, 0x0b, 0x34, 0xfc, 0x70, 0xc0, 0x87, 0x7d, 0xec, 0x75,
-	0xf1, 0x26, 0xd3, 0x63, 0x47, 0x06, 0x1a, 0x10, 0x3b, 0x87, 0x5a, 0x70, 0xfa, 0x68, 0x0b, 0xf9,
-	0x09, 0x5e, 0x14, 0x87, 0xbd, 0xa1, 0xaf, 0xf0, 0xec, 0x29, 0x78, 0xe7, 0x5a, 0xb0, 0xc2, 0xd3,
-	0xf3, 0xc9, 0x31, 0x00, 0x17, 0x61, 0xac, 0xd0, 0x52, 0xfb, 0x68, 0x4f, 0x44, 0xeb, 0xe6, 0xa1,
-	0x29, 0x96, 0x96, 0xeb, 0xbe, 0x87, 0xc7, 0x63, 0xe4, 0xa7, 0xd9, 0x4b, 0x55, 0xb3, 0x97, 0x04,
-	0x60, 0x8c, 0xed, 0x83, 0x00, 0xde, 0xc1, 0x72, 0x89, 0xe0, 0x43, 0xd2, 0xbd, 0xdf, 0x36, 0x2c,
-	0xa7, 0x66, 0x30, 0xba, 0x10, 0x27, 0x46, 0xf9, 0xb6, 0xe5, 0x80, 0x4a, 0xb1, 0x53, 0xa5, 0x3b,
-	0x31, 0x4a, 0x67, 0xc6, 0x9a, 0x26, 0xdb, 0x47, 0x83, 0x6c, 0x4f, 0x8d, 0x48, 0xff, 0xb5, 0x64,
-	0xaf, 0x61, 0x65, 0xd4, 0xef, 0xac, 0x6f, 0x72, 0xf7, 0x97, 0x0d, 0x4b, 0x07, 0x71, 0x78, 0x85,
-	0x71, 0x17, 0xe3, 0xdb, 0xc0, 0x47, 0x72, 0x08, 0x0d, 0xfd, 0x67, 0x80, 0x38, 0xda, 0x28, 0x0b,
-	0xe6, 0xee, 0x3e, 0x31, 0x9c, 0xa8, 0xc2, 0x9f, 0xe1, 0x51, 0xd1, 0x1d, 0x89, 0x2b, 0x83, 0x8d,
-	0x0e, 0xeb, 0x6e, 0x1a, 0xcf, 0x14, 0xd4, 0x01, 0xd4, 0x35, 0x5f, 0x53, 0x74, 0x0c, 0xb6, 0xa8,
-	0xe8, 0x18, 0x3d, 0xf0, 0x14, 0x96, 0x4b, 0x3f, 0x21, 0x64, 0xb3, 0xf8, 0xb0, 0x8b, 0x9d, 0x6d,
-	0x99, 0x0f, 0x15, 0xda, 0x1e, 0x2c, 0x66, 0x93, 0x26, 0x6b, 0xa6, 0x8b, 0xe6, 0xae, 0x97, 0x76,
-	0x55, 0xe2, 0x07, 0xa8, 0x6b, 0x4e, 0x42, 0x36, 0xc6, 0xbd, 0x25, 0x4d, 0x77, 0x26, 0x99, 0xce,
-	0xc5, 0xbc, 0xfc, 0xf7, 0xf4, 0xea, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x4f, 0x0d, 0x37, 0x31,
-	0x4a, 0x09, 0x00, 0x00,
+	// 836 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xdd, 0x4e, 0xdb, 0x4a,
+	0x10, 0x96, 0x13, 0x07, 0xf0, 0x24, 0xfc, 0x9c, 0x85, 0x04, 0x9f, 0x80, 0x8e, 0x22, 0x5f, 0xa0,
+	0x08, 0xce, 0x89, 0x74, 0x38, 0x47, 0x2a, 0x42, 0xaa, 0x4a, 0xf9, 0x11, 0x20, 0x41, 0x45, 0x37,
+	0x95, 0x7a, 0xd3, 0x9b, 0xc5, 0x19, 0x81, 0x45, 0x12, 0x1b, 0x7b, 0x93, 0x36, 0x37, 0x7d, 0xa4,
+	0x5e, 0xf7, 0x29, 0xaa, 0xbe, 0x4d, 0x6f, 0x2b, 0xaf, 0x37, 0xce, 0xda, 0x71, 0xfe, 0xc4, 0x9d,
+	0x77, 0x77, 0xf6, 0x9b, 0xf9, 0x66, 0xbe, 0x9d, 0x31, 0x18, 0xcc, 0x73, 0x1a, 0x9e, 0xef, 0x72,
+	0x97, 0xe4, 0x99, 0xe7, 0x58, 0xdf, 0x35, 0x58, 0xbe, 0xc5, 0x20, 0x60, 0x0f, 0x48, 0x36, 0x20,
+	0x1f, 0xe0, 0xb3, 0xa9, 0xd5, 0xb4, 0xba, 0x4e, 0xc3, 0x4f, 0xb2, 0x0b, 0x06, 0x77, 0x3a, 0x18,
+	0x70, 0xd6, 0xf1, 0xcc, 0x9c, 0xd8, 0x1f, 0x6d, 0x10, 0x13, 0x96, 0x3d, 0x36, 0x68, 0xbb, 0xac,
+	0x65, 0xe6, 0x6b, 0x5a, 0xbd, 0x44, 0x87, 0x4b, 0xb2, 0x0f, 0x7a, 0x07, 0x39, 0x33, 0xf5, 0x5a,
+	0xbe, 0x5e, 0x3c, 0xac, 0x34, 0x42, 0xa7, 0xd2, 0x4b, 0xe3, 0x16, 0x39, 0xbb, 0xe8, 0x72, 0x7f,
+	0x40, 0x85, 0x4d, 0xf5, 0x15, 0x18, 0xf1, 0x56, 0x18, 0xc2, 0x13, 0x0e, 0x44, 0x08, 0x06, 0x0d,
+	0x3f, 0xc9, 0x16, 0x14, 0xfa, 0xac, 0xdd, 0x43, 0xe1, 0xbe, 0x44, 0xa3, 0xc5, 0x71, 0xee, 0x48,
+	0xb3, 0xee, 0x60, 0x43, 0x62, 0x7e, 0x74, 0xf8, 0x23, 0x75, 0x7b, 0x1c, 0xc9, 0x1e, 0x2c, 0x77,
+	0xa2, 0x3d, 0x81, 0x51, 0x3c, 0x2c, 0xa9, 0xbe, 0xe9, 0xf0, 0x30, 0x44, 0xe5, 0xae, 0xe7, 0xd8,
+	0x02, 0xd5, 0xa0, 0xd1, 0xc2, 0xfa, 0x0a, 0x85, 0x0b, 0xdf, 0x77, 0x7d, 0x42, 0x40, 0xb7, 0xdd,
+	0x16, 0xca, 0x54, 0x88, 0x6f, 0x52, 0x07, 0xbd, 0xc5, 0x38, 0x33, 0x73, 0x82, 0xd3, 0x96, 0xc0,
+	0x15, 0xd6, 0x8d, 0x73, 0x16, 0x33, 0x0a, 0x2d, 0x42, 0x46, 0xf1, 0xd6, 0x2c, 0x46, 0x86, 0xca,
+	0xe8, 0x0a, 0x36, 0x9b, 0xd8, 0x6d, 0xc9, 0x68, 0x03, 0x8a, 0xcf, 0x3d, 0x0c, 0x38, 0xf9, 0x17,
+	0x56, 0x64, 0xdc, 0x81, 0xa9, 0x09, 0xef, 0x65, 0x95, 0x55, 0xcc, 0x9e, 0xc6, 0x66, 0xd6, 0x11,
+	0x6c, 0x25, 0x91, 0x02, 0xcf, 0xed, 0x06, 0x48, 0x6a, 0x50, 0xc0, 0x30, 0x66, 0x99, 0x1d, 0x18,
+	0xb1, 0xa0, 0xd1, 0x81, 0xf5, 0x09, 0x2a, 0x14, 0x6d, 0x07, 0xfb, 0x98, 0x0e, 0x23, 0xce, 0x99,
+	0xa6, 0xe4, 0x6c, 0x28, 0x9a, 0xdc, 0x48, 0x34, 0x55, 0x58, 0xe9, 0xb0, 0x2f, 0xa7, 0x8c, 0xdb,
+	0x8f, 0x42, 0x17, 0xab, 0x34, 0x5e, 0x5b, 0x08, 0xdb, 0x63, 0xe8, 0xf3, 0x86, 0x46, 0xea, 0x4a,
+	0x1e, 0xa2, 0x2a, 0x24, 0xab, 0x3b, 0xa2, 0xff, 0x0f, 0x94, 0x2f, 0x91, 0xdf, 0xb0, 0x80, 0x0f,
+	0xcf, 0xa6, 0x71, 0xb0, 0xee, 0xa1, 0x92, 0x36, 0x9f, 0x3b, 0x28, 0x45, 0x71, 0xb9, 0x29, 0x8a,
+	0xb3, 0x0e, 0x60, 0xf3, 0xcc, 0x47, 0xc6, 0xf1, 0x43, 0xe8, 0x72, 0x7a, 0x52, 0xc3, 0xf2, 0x25,
+	0x8d, 0xe7, 0x2e, 0xdf, 0xdf, 0x40, 0xe2, 0x04, 0x73, 0x36, 0xf4, 0x52, 0x81, 0x25, 0x01, 0x1c,
+	0xe9, 0xc7, 0xa0, 0x72, 0x65, 0xfd, 0xd2, 0x61, 0x33, 0x61, 0x3e, 0x37, 0xed, 0x77, 0x50, 0xb2,
+	0xdd, 0x6e, 0xd0, 0xeb, 0x60, 0xab, 0x89, 0xcf, 0xc3, 0x7a, 0xec, 0x0b, 0xc3, 0x0c, 0xc4, 0xc6,
+	0x99, 0x62, 0x1c, 0xbd, 0x95, 0xc4, 0xfd, 0x10, 0xcf, 0xf3, 0xdd, 0x56, 0xcf, 0x96, 0x78, 0xf9,
+	0x19, 0x78, 0x77, 0x8a, 0xb1, 0xc4, 0x53, 0xef, 0x93, 0x2b, 0x80, 0x80, 0xbb, 0xbe, 0x44, 0x8b,
+	0xfa, 0x50, 0x7d, 0x22, 0x5a, 0x33, 0x36, 0x8d, 0xb0, 0x94, 0xbb, 0xe4, 0x3d, 0xac, 0xb2, 0x3e,
+	0x73, 0xda, 0xec, 0xbe, 0x8d, 0x02, 0xac, 0x20, 0xc0, 0x0e, 0x26, 0x82, 0xbd, 0x55, 0xad, 0x23,
+	0xbc, 0x24, 0x42, 0xf5, 0x0d, 0xfc, 0x31, 0x96, 0x8f, 0x59, 0x8d, 0x42, 0x57, 0x1a, 0x45, 0x08,
+	0x30, 0x96, 0x80, 0x85, 0x00, 0x5e, 0xc3, 0x7a, 0x8a, 0xf3, 0x42, 0xd7, 0x4f, 0x80, 0x8c, 0xb3,
+	0x5c, 0x04, 0xc1, 0xfa, 0xa1, 0xc1, 0x76, 0xd8, 0xa1, 0x64, 0x1e, 0x7c, 0x55, 0xad, 0x7f, 0x01,
+	0x48, 0x6d, 0xf8, 0xd7, 0xe7, 0x12, 0x4e, 0xd9, 0x21, 0x34, 0x53, 0x7b, 0x0d, 0x51, 0x90, 0x09,
+	0x98, 0xb3, 0xf4, 0xf7, 0xe2, 0x92, 0x58, 0xdf, 0x24, 0x21, 0x59, 0x97, 0x04, 0x21, 0x9a, 0x12,
+	0xb7, 0x96, 0x0a, 0x38, 0xe3, 0xce, 0x2c, 0x81, 0xbf, 0x58, 0x02, 0xd6, 0xff, 0xb0, 0x11, 0x8d,
+	0x88, 0x45, 0xde, 0xbd, 0xf5, 0x19, 0xca, 0x51, 0x67, 0x1a, 0x26, 0x79, 0xde, 0xa2, 0x8d, 0x5a,
+	0x50, 0x4e, 0x6d, 0x41, 0x64, 0x0f, 0xd6, 0x18, 0xe7, 0xcc, 0x7e, 0x6c, 0x72, 0x9f, 0x71, 0x7c,
+	0x18, 0x88, 0x99, 0x61, 0xd0, 0xd4, 0xae, 0x75, 0x0c, 0x95, 0xb4, 0xe3, 0x79, 0x83, 0x3e, 0xfc,
+	0xa9, 0xc3, 0xea, 0xa9, 0xef, 0x3e, 0xa1, 0xdf, 0x44, 0xbf, 0xef, 0xd8, 0x48, 0xce, 0xa0, 0xa4,
+	0xce, 0x47, 0x62, 0xc6, 0xb5, 0x48, 0x4d, 0xbd, 0xea, 0x9f, 0x19, 0x27, 0xd2, 0xf1, 0x35, 0xac,
+	0x25, 0xc7, 0x06, 0xa9, 0x0a, 0xe3, 0xcc, 0xd1, 0x53, 0xdd, 0xc9, 0x3c, 0x93, 0x50, 0xa7, 0x50,
+	0x54, 0x1a, 0xbe, 0x0c, 0x27, 0x63, 0x5e, 0xc8, 0x70, 0x32, 0x87, 0xc3, 0x65, 0x54, 0x50, 0x55,
+	0x4c, 0x64, 0x77, 0x9a, 0xc6, 0xaa, 0x65, 0x85, 0x9b, 0xa2, 0x82, 0x1b, 0x58, 0x4f, 0x0d, 0x69,
+	0xb2, 0x93, 0xec, 0x76, 0xc9, 0x14, 0xed, 0x66, 0x1f, 0x26, 0xc3, 0x52, 0x1f, 0xa5, 0x12, 0x56,
+	0xc6, 0x5b, 0x9d, 0x14, 0xd6, 0x35, 0xac, 0x25, 0x15, 0x20, 0xd3, 0x9d, 0xa9, 0x47, 0x99, 0xee,
+	0x09, 0x92, 0x39, 0x81, 0xa2, 0xd2, 0xb9, 0xc9, 0xf6, 0x78, 0x2f, 0x8f, 0x40, 0xcc, 0x49, 0x4d,
+	0xfe, 0x7e, 0x49, 0xfc, 0x43, 0xff, 0xf7, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x79, 0x84, 0x7f, 0x2c,
+	0x50, 0x0b, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -808,12 +954,16 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type BrokerServiceClient interface {
+	// ProducerAPI
 	SendMessages(ctx context.Context, in *SendMessagesRequest, opts ...grpc.CallOption) (*SendMessagesResponse, error)
 	GetLastMessage(ctx context.Context, in *GetLastMessageRequest, opts ...grpc.CallOption) (*GetLastMessageResponse, error)
-	// rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
 	CreateTopic(ctx context.Context, in *CreateTopicsRequest, opts ...grpc.CallOption) (*CreateTopicsResponse, error)
+	SendProducerMeta(ctx context.Context, in *SendProducerMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error)
+	// ConsumerAPI
 	RecieveMessages(ctx context.Context, in *RecieveMessagesRequest, opts ...grpc.CallOption) (*RecieveMessagesResponse, error)
-	SendMeta(ctx context.Context, in *SendMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error)
+	SendConsumerMeta(ctx context.Context, in *SendConsumerMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error)
+	CreateConsumer(ctx context.Context, in *CreateConsumerRequest, opts ...grpc.CallOption) (*CreateConsumerResponse, error)
+	// CommonAPI
 	RecieveMeta(ctx context.Context, in *RecieveMetaRequest, opts ...grpc.CallOption) (*RecieveMetaResponse, error)
 }
 
@@ -852,6 +1002,15 @@ func (c *brokerServiceClient) CreateTopic(ctx context.Context, in *CreateTopicsR
 	return out, nil
 }
 
+func (c *brokerServiceClient) SendProducerMeta(ctx context.Context, in *SendProducerMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error) {
+	out := new(SendMetaResponse)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/SendProducerMeta", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *brokerServiceClient) RecieveMessages(ctx context.Context, in *RecieveMessagesRequest, opts ...grpc.CallOption) (*RecieveMessagesResponse, error) {
 	out := new(RecieveMessagesResponse)
 	err := c.cc.Invoke(ctx, "/api.BrokerService/RecieveMessages", in, out, opts...)
@@ -861,9 +1020,18 @@ func (c *brokerServiceClient) RecieveMessages(ctx context.Context, in *RecieveMe
 	return out, nil
 }
 
-func (c *brokerServiceClient) SendMeta(ctx context.Context, in *SendMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error) {
+func (c *brokerServiceClient) SendConsumerMeta(ctx context.Context, in *SendConsumerMetaRequest, opts ...grpc.CallOption) (*SendMetaResponse, error) {
 	out := new(SendMetaResponse)
-	err := c.cc.Invoke(ctx, "/api.BrokerService/SendMeta", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/SendConsumerMeta", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerServiceClient) CreateConsumer(ctx context.Context, in *CreateConsumerRequest, opts ...grpc.CallOption) (*CreateConsumerResponse, error) {
+	out := new(CreateConsumerResponse)
+	err := c.cc.Invoke(ctx, "/api.BrokerService/CreateConsumer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -881,12 +1049,16 @@ func (c *brokerServiceClient) RecieveMeta(ctx context.Context, in *RecieveMetaRe
 
 // BrokerServiceServer is the server API for BrokerService service.
 type BrokerServiceServer interface {
+	// ProducerAPI
 	SendMessages(context.Context, *SendMessagesRequest) (*SendMessagesResponse, error)
 	GetLastMessage(context.Context, *GetLastMessageRequest) (*GetLastMessageResponse, error)
-	// rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
 	CreateTopic(context.Context, *CreateTopicsRequest) (*CreateTopicsResponse, error)
+	SendProducerMeta(context.Context, *SendProducerMetaRequest) (*SendMetaResponse, error)
+	// ConsumerAPI
 	RecieveMessages(context.Context, *RecieveMessagesRequest) (*RecieveMessagesResponse, error)
-	SendMeta(context.Context, *SendMetaRequest) (*SendMetaResponse, error)
+	SendConsumerMeta(context.Context, *SendConsumerMetaRequest) (*SendMetaResponse, error)
+	CreateConsumer(context.Context, *CreateConsumerRequest) (*CreateConsumerResponse, error)
+	// CommonAPI
 	RecieveMeta(context.Context, *RecieveMetaRequest) (*RecieveMetaResponse, error)
 }
 
@@ -903,11 +1075,17 @@ func (*UnimplementedBrokerServiceServer) GetLastMessage(ctx context.Context, req
 func (*UnimplementedBrokerServiceServer) CreateTopic(ctx context.Context, req *CreateTopicsRequest) (*CreateTopicsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateTopic not implemented")
 }
+func (*UnimplementedBrokerServiceServer) SendProducerMeta(ctx context.Context, req *SendProducerMetaRequest) (*SendMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendProducerMeta not implemented")
+}
 func (*UnimplementedBrokerServiceServer) RecieveMessages(ctx context.Context, req *RecieveMessagesRequest) (*RecieveMessagesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecieveMessages not implemented")
 }
-func (*UnimplementedBrokerServiceServer) SendMeta(ctx context.Context, req *SendMetaRequest) (*SendMetaResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendMeta not implemented")
+func (*UnimplementedBrokerServiceServer) SendConsumerMeta(ctx context.Context, req *SendConsumerMetaRequest) (*SendMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendConsumerMeta not implemented")
+}
+func (*UnimplementedBrokerServiceServer) CreateConsumer(ctx context.Context, req *CreateConsumerRequest) (*CreateConsumerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateConsumer not implemented")
 }
 func (*UnimplementedBrokerServiceServer) RecieveMeta(ctx context.Context, req *RecieveMetaRequest) (*RecieveMetaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecieveMeta not implemented")
@@ -971,6 +1149,24 @@ func _BrokerService_CreateTopic_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BrokerService_SendProducerMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendProducerMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).SendProducerMeta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.BrokerService/SendProducerMeta",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).SendProducerMeta(ctx, req.(*SendProducerMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BrokerService_RecieveMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RecieveMessagesRequest)
 	if err := dec(in); err != nil {
@@ -989,20 +1185,38 @@ func _BrokerService_RecieveMessages_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BrokerService_SendMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendMetaRequest)
+func _BrokerService_SendConsumerMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendConsumerMetaRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BrokerServiceServer).SendMeta(ctx, in)
+		return srv.(BrokerServiceServer).SendConsumerMeta(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.BrokerService/SendMeta",
+		FullMethod: "/api.BrokerService/SendConsumerMeta",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BrokerServiceServer).SendMeta(ctx, req.(*SendMetaRequest))
+		return srv.(BrokerServiceServer).SendConsumerMeta(ctx, req.(*SendConsumerMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BrokerService_CreateConsumer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateConsumerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).CreateConsumer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.BrokerService/CreateConsumer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).CreateConsumer(ctx, req.(*CreateConsumerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1042,12 +1256,20 @@ var _BrokerService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _BrokerService_CreateTopic_Handler,
 		},
 		{
+			MethodName: "SendProducerMeta",
+			Handler:    _BrokerService_SendProducerMeta_Handler,
+		},
+		{
 			MethodName: "RecieveMessages",
 			Handler:    _BrokerService_RecieveMessages_Handler,
 		},
 		{
-			MethodName: "SendMeta",
-			Handler:    _BrokerService_SendMeta_Handler,
+			MethodName: "SendConsumerMeta",
+			Handler:    _BrokerService_SendConsumerMeta_Handler,
+		},
+		{
+			MethodName: "CreateConsumer",
+			Handler:    _BrokerService_CreateConsumer_Handler,
 		},
 		{
 			MethodName: "RecieveMeta",

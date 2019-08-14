@@ -6,6 +6,8 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
+	"sync"
+	"time"
 )
 
 var (
@@ -24,6 +26,48 @@ func NewTopicExistsError(topicName string) TopicExistsError {
 
 func (e TopicExistsError) Error() string {
 	return fmt.Sprintf("topic \"%s\" already exists", e.TopicName)
+}
+
+type TopicNotExistError struct {
+	TopicName string
+}
+
+func NewTopicNotExistError(topicName string) TopicNotExistError {
+	return TopicNotExistError{
+		TopicName: topicName,
+	}
+}
+
+func (e TopicNotExistError) Error() string {
+	return fmt.Sprintf("topic \"%s\" not exist", e.TopicName)
+}
+
+type TopicEmptyError struct {
+	TopicName string
+}
+
+func NewTopicEmptyError(topicName string) TopicEmptyError {
+	return TopicEmptyError{
+		TopicName: topicName,
+	}
+}
+
+func (e TopicEmptyError) Error() string {
+	return fmt.Sprintf("topic \"%s\" is empty", e.TopicName)
+}
+
+type ConsumerExistsError struct {
+	ConsumerID string
+}
+
+func NewConsumerExistsError(consumerID string) ConsumerExistsError {
+	return ConsumerExistsError{
+		ConsumerID: consumerID,
+	}
+}
+
+func (e ConsumerExistsError) Error() string {
+	return fmt.Sprintf("consumer \"%s\" already exists", e.ConsumerID)
 }
 
 func MinUint64(v1, v2 uint64) uint64 {
@@ -90,4 +134,44 @@ func SecondsToNanoSeconds(seconds int64) uint64 {
 
 func NanoSecondsToSeconds(nanoSeconds uint64) int64 {
 	return int64(nanoSeconds / 1000000000)
+}
+
+type PeriodicThread struct {
+	waitGroup sync.WaitGroup
+	doneChan  chan struct{}
+	periodSec int
+	jobFunc   func()
+}
+
+func NewPeriodicThread(jobFunc func(), periodSec int) *PeriodicThread {
+	periodicThread := &PeriodicThread{
+		doneChan:  make(chan struct{}, 1),
+		periodSec: periodSec,
+		jobFunc:   jobFunc,
+	}
+	periodicThread.waitGroup.Add(1)
+	go periodicThread.threadLoop()
+	return periodicThread
+}
+
+func (t *PeriodicThread) threadLoop() {
+	ticker := time.NewTicker(time.Duration(t.periodSec) * time.Second)
+Loop:
+	for {
+		select {
+		case <-ticker.C:
+			t.jobFunc()
+		case <-t.doneChan:
+			break Loop
+		}
+	}
+	t.waitGroup.Done()
+}
+
+func (t *PeriodicThread) Stop() {
+	t.doneChan <- struct{}{}
+}
+
+func (t *PeriodicThread) Join() {
+	t.waitGroup.Wait()
 }

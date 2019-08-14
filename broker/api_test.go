@@ -28,26 +28,26 @@ const dataDir = "test_data"
 func setup() {
 	lis = bufconn.Listen(bufSize)
 
-	config := &Config{
+	config := Config{
 		DataDir:                        dataDir,
 		SegmentMaxSizeBytes:            1024 * 1024 * 10,
 		SegmentMaxSizeMessages:         10000,
 		StorageFlushingToFilePeriodSec: 2,
 		StorageHousekeepingPeriodSec:   1,
 	}
-	topicManager, err := NewTopicManager(config)
+	broker, err := NewBroker(config)
 	if err != nil {
 		panic(err)
 	}
 	server = grpc.NewServer()
-	service := NewBrokerService(topicManager)
+	service := NewBrokerService(broker)
 	api.RegisterBrokerServiceServer(server, service)
 	wg.Add(1)
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)
 		}
-		if err := topicManager.Shutdown(); err != nil {
+		if err := broker.Shutdown(); err != nil {
 			log.Fatalf("TopicManager exit with error: %v", err)
 		}
 		wg.Done()
@@ -103,7 +103,7 @@ func checkError(t *testing.T, err error, response interface{}, methodName string
 		t.Fatalf("%s failed: bad error cast", methodName)
 	}
 	if erro != nil {
-		t.Fatalf("%s failed: %s", methodName, erro.Message)
+		t.Fatalf("%s failed: %s", methodName, api.ErrorFromProtoError(erro))
 	}
 }
 
@@ -121,7 +121,7 @@ func TestCreateTopic(t *testing.T) {
 			Topic: "demo",
 		})
 
-		checkError(t, err, resp, "CreateTopic failed")
+		checkError(t, err, resp, "CreateTopic")
 		log.Printf("CreateTopic Response: %+v", resp)
 	}
 
@@ -163,7 +163,7 @@ func TestSendAndRecieveMessages(t *testing.T) {
 			Topic: topicName,
 		})
 
-		checkError(t, err, resp, "CreateTopic failed")
+		checkError(t, err, resp, "CreateTopic")
 		log.Printf("CreateTopic Response: %+v", resp)
 	}
 
@@ -303,7 +303,7 @@ func TestRecieveMeta(t *testing.T) {
 			Topic: topicName,
 		})
 
-		checkError(t, err, resp, "CreateTopic failed")
+		checkError(t, err, resp, "CreateTopic")
 		log.Printf("CreateTopic Response: %+v", resp)
 	}
 
@@ -344,4 +344,57 @@ func TestRecieveMeta(t *testing.T) {
 		}
 	}
 
+}
+
+func TestConsumerMeta(t *testing.T) {
+	ctx := context.Background()
+	topicName := "TestConsumerMeta"
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	client := api.NewBrokerServiceClient(conn)
+
+	{
+		resp, err := client.CreateTopic(ctx, &api.CreateTopicsRequest{
+			Topic: topicName,
+		})
+
+		checkError(t, err, resp, "CreateTopic")
+		log.Printf("CreateTopic Response: %+v", resp)
+	}
+
+	{
+		resp, err := client.CreateConsumer(ctx, &api.CreateConsumerRequest{
+			ConsumerID:     "myConsumer",
+			Topics:         []string{topicName},
+			AttachStrategy: "earliest",
+		})
+
+		checkError(t, err, resp, "CreateConsumer")
+		log.Printf("CreateTopic Response: %+v", resp)
+	}
+
+	{
+		resp, err := client.SendConsumerMeta(ctx, &api.SendConsumerMetaRequest{
+			ConsumerID: "myConsumer",
+			ConsumedSeqs: map[string]uint64{
+				topicName: 30,
+			},
+		})
+		checkError(t, err, resp, "SendConsumerMeta")
+		log.Printf("ProduceBatch Response: %+v", resp)
+	}
+
+	{
+		resp, err := client.RecieveMeta(ctx, &api.RecieveMetaRequest{
+			Topics: []string{topicName},
+		})
+		checkError(t, err, resp, "RecieveMeta")
+		log.Printf("RecieveMeta Response: %+v", resp)
+		if resp.ConsumedSeqs[topicName] != 30 {
+			t.Errorf("expected consumedSeq = 30 (got %d)", resp.ConsumedSeqs[topicName])
+		}
+	}
 }

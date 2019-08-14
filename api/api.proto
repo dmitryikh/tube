@@ -3,13 +3,21 @@ syntax = "proto3";
 package api;
 
   service BrokerService {
+    // ProducerAPI
     rpc SendMessages (SendMessagesRequest) returns (SendMessagesResponse);
     rpc GetLastMessage (GetLastMessageRequest) returns (GetLastMessageResponse);
-    // rpc GetNextMessage (GetNextMessageRequest) returns (GetNextMessageResponse);
     rpc CreateTopic (CreateTopicsRequest) returns (CreateTopicsResponse);
+    rpc SendProducerMeta (SendProducerMetaRequest) returns (SendMetaResponse);
+
+    // ConsumerAPI
     rpc RecieveMessages (RecieveMessagesRequest) returns (RecieveMessagesResponse);
-    rpc SendMeta (SendMetaRequest) returns (SendMetaResponse);
+    rpc SendConsumerMeta (SendConsumerMetaRequest) returns (SendMetaResponse);
+    rpc CreateConsumer (CreateConsumerRequest) returns (CreateConsumerResponse);
+
+    // CommonAPI
     rpc RecieveMeta (RecieveMetaRequest) returns (RecieveMetaResponse);
+
+
     // TODO: Delete or Remove
     // rpc DeleteTopic (DeleteTopicRequest) returns (DeleteTopicResponse);
     // rpc ListTopics (ListTopicsRequest) returns (ListTopicResponse);
@@ -30,7 +38,7 @@ package api;
 
   message Error {
     uint64 code = 1;
-    string message = 2;
+    map<string, string> data = 2;
   }
 
   message SendMessagesRequest {
@@ -39,8 +47,6 @@ package api;
 
   message SendMessagesResponse {
     Error error = 1;
-    // map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
-    // map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
   }
 
   message RecieveMessagesRequest {
@@ -63,16 +69,6 @@ package api;
     Message message = 2;
   }
 
-  // message GetNextMessageRequest {
-  //     string topic = 1;
-  //     uint64 seq = 2;
-  // }
-
-  // message GetNextMessageResponse {
-  //   Error error = 1;
-  //   Message message = 2;
-  // }
-
   message CreateTopicsRequest {
       string topic = 1;
   }
@@ -90,14 +86,29 @@ package api;
     map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
     map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
     map<string /*topicName*/, uint64 /*seqNum*/> storedSeqs = 4;
+    map<string /*topicName*/, uint64 /*seqNum*/> availableSeqs = 5;
   }
 
-  message SendMetaRequest {
+  message SendConsumerMetaRequest {
+    string consumerID = 1;  // Unique id of the consumer
     map<string /*topicName*/, uint64 /*seqNum*/> consumedSeqs = 2;
-    map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 3;
-    map<string /*topicName*/, uint64 /*seqNum*/> storedSeqs = 4;
+  }
+
+  message SendProducerMetaRequest {
+    map<string /*topicName*/, uint64 /*seqNum*/> producedSeqs = 1;
   }
 
   message SendMetaResponse {
+    Error error = 1;
+  }
+
+  message CreateConsumerRequest {
+    string consumerID = 1; // Unique id of the consumer
+    repeated string topics = 2;
+    string attachStrategy = 3; // can be "latest" - start consuming from the latest available messages in subscribed topics,
+                               //        "earliest" - start consuming from the earliest available messages
+  }
+
+  message CreateConsumerResponse {
     Error error = 1;
   }

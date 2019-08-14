@@ -1,6 +1,8 @@
 package api
 
-import "github.com/dmitryikh/tube/message"
+import (
+	"github.com/dmitryikh/tube/message"
+)
 
 func MessageFromProtoMessage(protoMessage *Message) *message.Message {
 	return &message.Message{
@@ -22,16 +24,18 @@ func ProtoMessageFromMessage(message *message.Message) *Message {
 }
 
 type Meta struct {
-	ProducedSeqs map[ /*topicName*/ string] /*seqNum*/ uint64
-	ConsumedSeqs map[ /*topicName*/ string] /*seqNum*/ uint64
-	StoredSeqs   map[ /*topicName*/ string] /*seqNum*/ uint64
+	ProducedSeqs  map[ /*topicName*/ string] /*seqNum*/ uint64
+	ConsumedSeqs  map[ /*topicName*/ string] /*seqNum*/ uint64
+	StoredSeqs    map[ /*topicName*/ string] /*seqNum*/ uint64
+	AvailableSeqs map[ /*topicName*/ string] /*seqNum*/ uint64
 }
 
 func NewMeta() *Meta {
 	return &Meta{
-		ProducedSeqs: make(map[string]uint64),
-		ConsumedSeqs: make(map[string]uint64),
-		StoredSeqs:   make(map[string]uint64),
+		ProducedSeqs:  make(map[string]uint64),
+		ConsumedSeqs:  make(map[string]uint64),
+		StoredSeqs:    make(map[string]uint64),
+		AvailableSeqs: make(map[string]uint64),
 	}
 }
 
@@ -46,14 +50,18 @@ func MetaFromRecieveMetaResponse(response *RecieveMetaResponse) *Meta {
 	for topicName, seq := range response.StoredSeqs {
 		meta.StoredSeqs[topicName] = seq
 	}
+	for topicName, seq := range response.AvailableSeqs {
+		meta.AvailableSeqs[topicName] = seq
+	}
 	return meta
 }
 
 func RecieveMetaResponseFromMeta(meta *Meta) *RecieveMetaResponse {
 	response := &RecieveMetaResponse{
-		ProducedSeqs: make(map[string]uint64),
-		ConsumedSeqs: make(map[string]uint64),
-		StoredSeqs:   make(map[string]uint64),
+		ProducedSeqs:  make(map[string]uint64),
+		ConsumedSeqs:  make(map[string]uint64),
+		StoredSeqs:    make(map[string]uint64),
+		AvailableSeqs: make(map[string]uint64),
 	}
 	for topicName, seq := range meta.ConsumedSeqs {
 		response.ConsumedSeqs[topicName] = seq
@@ -63,6 +71,9 @@ func RecieveMetaResponseFromMeta(meta *Meta) *RecieveMetaResponse {
 	}
 	for topicName, seq := range meta.StoredSeqs {
 		response.StoredSeqs[topicName] = seq
+	}
+	for topicName, seq := range meta.AvailableSeqs {
+		response.AvailableSeqs[topicName] = seq
 	}
 	return response
 }

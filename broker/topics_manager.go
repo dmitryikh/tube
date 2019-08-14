@@ -49,16 +49,11 @@ type TopicsManager struct {
 	Storage storage.Storage
 }
 
-func NewTopicManager(config *Config) (*TopicsManager, error) {
+func NewTopicsManager(config *Config) (*TopicsManager, error) {
 	manager := &TopicsManager{}
 	manager.config = NewTopicsManagerConfig(config)
 
 	log.Info("Creating TopicsManager..")
-	// TODO: create DataDir if not exists
-	err := os.MkdirAll(config.DataDir, 0777)
-	if err != nil {
-		return nil, err
-	}
 	metadataFilePath := path.Join(config.DataDir, topicsMetadataFilename)
 	if !tube.IsRegularFile(metadataFilePath) {
 		file, err := os.Create(metadataFilePath)
@@ -183,6 +178,17 @@ func (m *TopicsManager) GetConsumedSeq(topicName string) (uint64, error) {
 	return topic.ConsumedSeq, nil
 }
 
+func (m *TopicsManager) GetProducedSeq(topicName string) (uint64, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	topic, isFound := m.Topics[topicName]
+	if !isFound {
+		return 0, tube.NewTopicNotExistError(topicName)
+	}
+	return topic.ProducedSeq, nil
+}
+
 func (m *TopicsManager) GetStoredSeq(topicName string) (uint64, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -200,6 +206,15 @@ func (m *TopicsManager) SetConsumedSeq(topicName string, consumedSeq uint64) {
 		}
 	}
 	m.Storage.SetConsumedSeq(topicName, consumedSeq)
+}
+
+func (m *TopicsManager) SetProducedSeq(topicName string, seq uint64) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if topic, isFound := m.Topics[topicName]; isFound {
+		topic.ProducedSeq = seq
+	}
 }
 
 func (m *TopicsManager) AddMessage(topicName string, msg *message.Message) error {
